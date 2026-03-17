@@ -255,8 +255,7 @@ async function handleBatchDetection() {
         if (el.latencyText) el.latencyText.textContent = `${Math.round(endTime - startTime)}ms`;
 
         if (data.success) {
-            renderBatchDetections(data.results);
-            const totalObjects = data.results.reduce((acc, curr) => acc + curr.length, 0);
+            const totalObjects = renderBatchDetections(data.results);
 
             if (data.solution && data.solution.length > 0) {
                 showToast(`Batch complete: Target found in slots [${data.solution.join(', ')}] ✅`, 'success');
@@ -269,8 +268,10 @@ async function handleBatchDetection() {
             showToast('Batch execution failed', 'error');
         }
     } catch (err) {
-        if (el.resultsList) el.resultsList.innerHTML = `<div class="text-red-400 p-4 font-mono text-xs">BATCH_EXCEPTION: ${err.message}</div>`;
+        let msg = err.message || String(err);
+        if (el.resultsList) el.resultsList.innerHTML = `<div class="text-red-400 p-4 font-mono text-xs">BATCH_EXCEPTION: ${msg}</div>`;
         showToast('System Exception Occurred', 'error');
+        console.error('Batch Error:', err);
     } finally {
         setLoading(false);
     }
@@ -290,21 +291,25 @@ function fileToB64(file) {
 }
 
 function renderBatchDetections(results) {
-    if (!el.resultsList) return;
+    if (!el.resultsList || !results) return 0;
     el.resultsList.innerHTML = '';
     let total = 0;
     let resultIdx = 0;
 
     currentFiles.forEach((file, slotIdx) => {
         const slot = document.querySelector(`.grid-slot[data-index="${slotIdx}"]`);
-        if (!slot || file === null) return;
+        if (!slot) return;
+
+        // Results from backend are only for non-null currentFiles, 
+        // because we only sent activeFiles in the payload.
+        if (file === null) return;
 
         const overlay = slot.querySelector('.slot-overlay');
         const img = slot.querySelector('img');
         const badge = slot.querySelector('.slot-badge');
         if (overlay) overlay.innerHTML = '';
 
-        const detections = results[resultIdx++];
+        const detections = results[resultIdx++] || [];
         total += detections.length;
 
         if (img) {
@@ -359,6 +364,7 @@ function renderBatchDetections(results) {
     });
 
     if (el.objectCount) el.objectCount.textContent = `${total} OBJECTS`;
+    return total;
 }
 
 async function handleSaveTraining() {

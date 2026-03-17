@@ -84,7 +84,9 @@ async def detect_batch(request: ImageRequest):
 
     try:
         image_data_list = []
-        for b64_str in request.imageData:
+        valid_indices = []
+        
+        for idx, b64_str in enumerate(request.imageData):
             # Handle data:image/jpeg;base64, prefixes
             if "," in b64_str:
                 b64_str = b64_str.split(",")[1]
@@ -92,15 +94,24 @@ async def detect_batch(request: ImageRequest):
             try:
                 img_bytes = base64.b64decode(b64_str)
                 image_data_list.append(img_bytes)
+                valid_indices.append(idx)
             except Exception as e:
-                print(f"Base64 decode error: {e}")
+                print(f"Base64 decode index {idx} error: {e}")
                 continue
         
         if not image_data_list:
-            raise HTTPException(status_code=400, detail="None of the provided images could be decoded")
-
-        # Perform batch detection
-        batch_results = await detector.detect_batch(image_data_list, request.conf_threshold)
+            return {
+                "success": False,
+                "error": "None of the provided images could be decoded"
+            }
+        
+        # Perform batch detection for valid images
+        detected_batch = await detector.detect_batch(image_data_list, request.conf_threshold)
+        
+        # Map detected objects back to their original slots, filling empty for failed ones
+        batch_results = [[] for _ in range(len(request.imageData))]
+        for i, val_idx in enumerate(valid_indices):
+            batch_results[val_idx] = detected_batch[i]
         
         solution = []
         target = request.question.strip().lower() if request.question else None

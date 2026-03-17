@@ -1,0 +1,18 @@
+# YOLO training outputs
+runs/
+
+# Dataset
+dataset/
+
+# Models
+*.pt
+
+# Cache files
+*.cache
+
+# Python
+__pycache__/
+*.pyc
+
+# Env
+venv/

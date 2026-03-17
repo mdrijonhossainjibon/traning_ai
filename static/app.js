@@ -32,8 +32,21 @@ let el = {
     modelsListContainer: null,
     modelsLink: null,
     closeModelsModal: null,
-    refreshModelsBtn: null
+    refreshModelsBtn: null,
+    trainingModalOverlay: null,
+    trainingModeLink: null,
+    closeTrainingModal: null,
+    headerStartTrainBtn: null,
+    trainingDropZone: null,
+    trainingBatchInput: null,
+    batchPreviewGrid: null,
+    batchTrainLabel: null,
+    batchCountText: null,
+    saveBatchBtn: null,
+    uploadStatusText: null
 };
+
+let trainingBatchFiles = [];
 
 // ─── Initialization ──────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
@@ -71,14 +84,25 @@ function initElements() {
     el.closeModelsModal = document.getElementById('closeModelsModal');
     el.refreshModelsBtn = document.getElementById('refreshModelsBtn');
 
+    el.trainingModalOverlay = document.getElementById('training-modal-overlay');
+    el.trainingModeLink = document.getElementById('trainingModeLink');
+    el.closeTrainingModal = document.getElementById('closeTrainingModal');
+    el.headerStartTrainBtn = document.getElementById('headerStartTrainBtn');
+    el.trainingDropZone = document.getElementById('training-drop-zone');
+    el.trainingBatchInput = document.getElementById('training-batch-input');
+    el.batchPreviewGrid = document.getElementById('batch-preview-grid');
+    el.batchTrainLabel = document.getElementById('batch-train-label');
+    el.batchCountText = document.getElementById('batch-count-text');
+    el.saveBatchBtn = document.getElementById('saveBatchBtn');
+    el.uploadStatusText = document.getElementById('upload-status-text');
+
     // Force hide modals
     if (el.modalOverlay) {
         el.modalOverlay.style.display = 'none';
         el.modalOverlay.style.visibility = 'hidden';
     }
-    if (el.modelsModalOverlay) {
-        el.modelsModalOverlay.style.display = 'none';
-    }
+    if (el.modelsModalOverlay) el.modelsModalOverlay.style.display = 'none';
+    if (el.trainingModalOverlay) el.trainingModalOverlay.style.display = 'none';
 }
 
 function initListeners() {
@@ -185,7 +209,54 @@ function initListeners() {
         el.refreshModelsBtn.addEventListener('click', fetchModels);
     }
 
-    // 6. Resize
+    // 6. Training Mode Modal
+    if (el.trainingModeLink) {
+        el.trainingModeLink.addEventListener('click', (e) => {
+            e.preventDefault();
+            if (el.trainingModalOverlay) el.trainingModalOverlay.style.display = 'flex';
+        });
+    }
+
+    if (el.closeTrainingModal) {
+        el.closeTrainingModal.addEventListener('click', () => {
+            if (el.trainingModalOverlay) el.trainingModalOverlay.style.display = 'none';
+        });
+    }
+
+    if (el.headerStartTrainBtn) {
+        el.headerStartTrainBtn.addEventListener('click', () => {
+            if (el.modalOverlay) {
+                el.modalOverlay.style.display = 'flex';
+                el.modalOverlay.style.visibility = 'visible';
+            }
+        });
+    }
+
+    if (el.trainingDropZone && el.trainingBatchInput) {
+        el.trainingDropZone.addEventListener('click', () => el.trainingBatchInput.click());
+        el.trainingBatchInput.addEventListener('change', (e) => {
+            handleTrainingBatchFiles(Array.from(e.target.files));
+        });
+
+        el.trainingDropZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            el.trainingDropZone.classList.add('border-emerald-500', 'bg-emerald-500/5');
+        });
+        el.trainingDropZone.addEventListener('dragleave', () => {
+            el.trainingDropZone.classList.remove('border-emerald-500', 'bg-emerald-500/5');
+        });
+        el.trainingDropZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            el.trainingDropZone.classList.remove('border-emerald-500', 'bg-emerald-500/5');
+            if (e.dataTransfer.files.length) handleTrainingBatchFiles(Array.from(e.dataTransfer.files));
+        });
+    }
+
+    if (el.saveBatchBtn) {
+        el.saveBatchBtn.addEventListener('click', handleSaveBatchTraining);
+    }
+
+    // 7. Resize
     window.addEventListener('resize', () => {
         // Redraw logic if needed
     });
@@ -620,4 +691,101 @@ function renderModels(models) {
         `;
         el.modelsListContainer.appendChild(item);
     });
+}
+
+// ─── Training Mode Actions ────────────────────────────────
+
+function handleTrainingBatchFiles(files) {
+    const validImages = files.filter(f => f.type.startsWith('image/'));
+    if (validImages.length === 0) return;
+
+    trainingBatchFiles = [...trainingBatchFiles, ...validImages];
+    updateBatchUI();
+}
+
+function updateBatchUI() {
+    if (el.batchCountText) el.batchCountText.textContent = `${trainingBatchFiles.length} IMAGES SELECTED`;
+    if (el.saveBatchBtn) el.saveBatchBtn.disabled = trainingBatchFiles.length === 0;
+
+    if (el.batchPreviewGrid) {
+        el.batchPreviewGrid.innerHTML = '';
+        // Show first 20 previews
+        trainingBatchFiles.slice(0, 20).forEach((file, idx) => {
+            const reader = new FileReader();
+            const div = document.createElement('div');
+            div.className = 'aspect-square rounded-lg bg-slate-800 overflow-hidden relative group';
+
+            const img = document.createElement('img');
+            img.className = 'w-full h-full object-cover opacity-60';
+
+            const removeBtn = document.createElement('button');
+            removeBtn.className = 'absolute inset-0 flex items-center justify-center bg-red-500/40 opacity-0 group-hover:opacity-100 transition-opacity text-white text-[10px] uppercase font-bold';
+            removeBtn.textContent = 'Remove';
+            removeBtn.onclick = (e) => {
+                e.stopPropagation();
+                trainingBatchFiles.splice(idx, 1);
+                updateBatchUI();
+            };
+
+            reader.onload = (e) => {
+                img.src = e.target.result;
+            };
+            reader.readAsDataURL(file);
+
+            div.appendChild(img);
+            div.appendChild(removeBtn);
+            el.batchPreviewGrid.appendChild(div);
+        });
+
+        if (trainingBatchFiles.length > 20) {
+            const more = document.createElement('div');
+            more.className = 'aspect-square rounded-lg bg-slate-900 border border-slate-700 flex items-center justify-center text-slate-500 text-[10px] font-mono';
+            more.textContent = `+${trainingBatchFiles.length - 20} MORE`;
+            el.batchPreviewGrid.appendChild(more);
+        }
+    }
+}
+
+async function handleSaveBatchTraining() {
+    const label = el.batchTrainLabel ? el.batchTrainLabel.value.trim() : '';
+    if (trainingBatchFiles.length === 0 || !label) {
+        showToast('Label required for deployment', 'error');
+        return;
+    }
+
+    if (el.saveBatchBtn) el.saveBatchBtn.disabled = true;
+    if (el.uploadStatusText) el.uploadStatusText.textContent = 'DEPLOYING DATASET...';
+
+    let successCount = 0;
+    let failCount = 0;
+
+    for (let i = 0; i < trainingBatchFiles.length; i++) {
+        const file = trainingBatchFiles[i];
+        const formData = new FormData();
+        formData.append('file', file);
+
+        if (el.uploadStatusText) el.uploadStatusText.textContent = `UPLOADING ARTIFACT ${i + 1}/${trainingBatchFiles.length}...`;
+
+        try {
+            const response = await fetch(`/save-training-data?label=${encodeURIComponent(label)}`, {
+                method: 'POST',
+                body: formData
+            });
+            const res = await response.json();
+            if (res.success) successCount++;
+            else failCount++;
+        } catch (e) {
+            failCount++;
+        }
+    }
+
+    showToast(`Dataset updated: ${successCount} saved, ${failCount} failed`, successCount > 0 ? 'success' : 'error');
+
+    if (successCount > 0) {
+        trainingBatchFiles = [];
+        updateBatchUI();
+    }
+
+    if (el.saveBatchBtn) el.saveBatchBtn.disabled = trainingBatchFiles.length === 0;
+    if (el.uploadStatusText) el.uploadStatusText.textContent = 'READY FOR NEXT SEQUENCE';
 }

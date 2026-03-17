@@ -27,7 +27,12 @@ let el = {
     trainStatus: null,
     modalOverlay: null,
     confirmModal: null,
-    cancelModal: null
+    cancelModal: null,
+    modelsModalOverlay: null,
+    modelsListContainer: null,
+    modelsLink: null,
+    closeModelsModal: null,
+    refreshModelsBtn: null
 };
 
 // ─── Initialization ──────────────────────────────────────
@@ -60,11 +65,19 @@ function initElements() {
     el.modalOverlay = document.getElementById('modal-overlay');
     el.confirmModal = document.getElementById('confirmModal');
     el.cancelModal = document.getElementById('cancelModal');
+    el.modelsModalOverlay = document.getElementById('models-modal-overlay');
+    el.modelsListContainer = document.getElementById('models-list-container');
+    el.modelsLink = document.getElementById('modelsLink');
+    el.closeModelsModal = document.getElementById('closeModelsModal');
+    el.refreshModelsBtn = document.getElementById('refreshModelsBtn');
 
-    // Force hide modal
+    // Force hide modals
     if (el.modalOverlay) {
         el.modalOverlay.style.display = 'none';
         el.modalOverlay.style.visibility = 'hidden';
+    }
+    if (el.modelsModalOverlay) {
+        el.modelsModalOverlay.style.display = 'none';
     }
 }
 
@@ -153,7 +166,26 @@ function initListeners() {
 
     if (el.confirmModal) el.confirmModal.addEventListener('click', handleConfirmTraining);
 
-    // 5. Resize
+    // 5. Models Modal
+    if (el.modelsLink) {
+        el.modelsLink.addEventListener('click', (e) => {
+            e.preventDefault();
+            if (el.modelsModalOverlay) el.modelsModalOverlay.style.display = 'flex';
+            fetchModels();
+        });
+    }
+
+    if (el.closeModelsModal) {
+        el.closeModelsModal.addEventListener('click', () => {
+            if (el.modelsModalOverlay) el.modelsModalOverlay.style.display = 'none';
+        });
+    }
+
+    if (el.refreshModelsBtn) {
+        el.refreshModelsBtn.addEventListener('click', fetchModels);
+    }
+
+    // 6. Resize
     window.addEventListener('resize', () => {
         // Redraw logic if needed
     });
@@ -532,4 +564,60 @@ function initTimestamp() {
             tsEl.textContent = `TIMESTAMP: ${ts}`;
         }
     }, 1000);
+}
+
+async function fetchModels() {
+    if (el.modelsListContainer) {
+        el.modelsListContainer.innerHTML = '<div class="text-center py-10 text-slate-500 animate-pulse">Scanning server for model artifacts...</div>';
+    }
+
+    try {
+        const response = await fetch('/models');
+        const data = await response.json();
+
+        if (data.success) {
+            renderModels(data.models);
+        } else {
+            showToast('Failed to fetch models', 'error');
+        }
+    } catch (err) {
+        console.error('Fetch models error:', err);
+        showToast('System error fetching models', 'error');
+    }
+}
+
+function renderModels(models) {
+    if (!el.modelsListContainer) return;
+
+    if (!models || models.length === 0) {
+        el.modelsListContainer.innerHTML = '<div class="text-center py-10 text-slate-500">No model files (.pt) found on server</div>';
+        return;
+    }
+
+    el.modelsListContainer.innerHTML = '';
+    models.forEach(model => {
+        const item = document.createElement('div');
+        item.className = 'flex items-center justify-between p-4 bg-slate-800/40 rounded-xl border border-slate-700/50 hover:border-neon/50 transition-all group';
+
+        item.innerHTML = `
+            <div class="flex items-center space-x-4">
+                <div class="w-10 h-10 rounded-lg bg-neon/10 flex items-center justify-center text-neon">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                    </svg>
+                </div>
+                <div>
+                    <h4 class="text-sm font-bold text-white group-hover:text-neon transition-colors">${model.filename}</h4>
+                    <p class="text-[10px] text-slate-500 font-mono uppercase">${model.path} • ${model.size}</p>
+                </div>
+            </div>
+            <a href="/download-model/${model.path}" download class="px-4 py-2 rounded-lg bg-emerald-500/10 hover:bg-emerald-500 text-emerald-500 hover:text-white text-[10px] font-bold transition-all uppercase flex items-center space-x-2">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                </svg>
+                <span>Download</span>
+            </a>
+        `;
+        el.modelsListContainer.appendChild(item);
+    });
 }

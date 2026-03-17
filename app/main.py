@@ -1,6 +1,6 @@
 from fastapi import FastAPI, UploadFile, File, HTTPException, Form
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, FileResponse
 import uvicorn
 import asyncio
 from typing import List, Optional
@@ -282,6 +282,48 @@ async def reload_model():
             return {"success": True, "message": "Model reloaded successfully"}
     except Exception as e:
         return {"success": False, "error": str(e)}
+
+@app.get("/models")
+async def list_models():
+    """List all available YOLO model files (.pt)."""
+    models = []
+    # Search in app/model, root, and runs/
+    search_dirs = ["app/model", ".", "runs"]
+    
+    for s_dir in search_dirs:
+        if not os.path.exists(s_dir):
+            continue
+            
+        for root, dirs, files in os.walk(s_dir):
+            # Skip venv, .git, and common hidden dirs
+            if any(x in root for x in ["venv", ".git", "__pycache__", ".ipynb_checkpoints"]):
+                continue
+            for file in files:
+                if file.endswith(".pt"):
+                    full_path = os.path.join(root, file)
+                    rel_path = os.path.relpath(full_path, ".")
+                    size_mb = os.path.getsize(full_path) / (1024 * 1024)
+                    models.append({
+                        "filename": file,
+                        "path": rel_path.replace("\\", "/"),
+                        "size": f"{size_mb:.1f} MB"
+                    })
+    return {"success": True, "models": models}
+
+@app.get("/download-model/{model_path:path}")
+async def download_model(model_path: str):
+    """Download a specific model file."""
+    # Security check: ensure path is within allowlist and exists
+    abs_path = os.path.abspath(model_path)
+    base_dir = os.path.abspath(".")
+    
+    if not abs_path.startswith(base_dir):
+         raise HTTPException(status_code=403, detail="Access denied")
+         
+    if not os.path.exists(abs_path) or not abs_path.endswith(".pt"):
+        raise HTTPException(status_code=404, detail="Model file not found")
+    
+    return FileResponse(path=abs_path, filename=os.path.basename(abs_path))
 
 
 # Static files are mounted at the end to serve the front-end

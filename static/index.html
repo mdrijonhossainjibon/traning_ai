@@ -229,6 +229,40 @@
         </div>
     </div>
 
+    <!-- Models Modal -->
+    <div id="models-modal-overlay"
+        class="fixed inset-0 bg-dark/80 backdrop-blur-md z-[10000] hidden items-center justify-center p-4">
+        <div class="modal-content max-w-2xl w-full max-h-[80vh] flex flex-col">
+            <div class="flex justify-between items-center mb-6">
+                <h3 class="text-xl font-bold text-white uppercase tracking-wider">Available Neural Models</h3>
+                <button id="closeModelsModal" class="text-slate-500 hover:text-white transition-colors">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24"
+                        stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </button>
+            </div>
+
+            <div id="models-list-container" class="space-y-3 overflow-y-auto custom-scrollbar pr-2 mb-6 min-h-[200px]">
+                <!-- Models will be listed here -->
+                <div class="text-center py-10 text-slate-500 animate-pulse">Scanning server for model artifacts...</div>
+            </div>
+
+            <div class="pt-6 border-t border-slate-800 flex justify-end">
+                <button id="refreshModelsBtn"
+                    class="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-white text-xs font-bold transition-all uppercase flex items-center space-x-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24"
+                        stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                    </svg>
+                    <span>Refresh List</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
     <!-- Navbar -->
     <nav class="p-6">
         <div class="max-w-7xl mx-auto flex justify-between items-center">
@@ -251,7 +285,7 @@
             <div class="hidden md:flex space-x-6 text-sm font-medium text-slate-400">
                 <a href="#" class="hover:text-neon transition-colors">Documentation</a>
                 <a href="#" class="hover:text-neon transition-colors">API Keys</a>
-                <a href="#" class="hover:text-neon transition-colors">Models</a>
+                <a href="#" id="modelsLink" class="hover:text-neon transition-colors">Models</a>
             </div>
         </div>
     </nav>
@@ -665,7 +699,7 @@
         </div>
     </footer>
 
-    <script src="/app.js?v=10"></script>
+    <script src="/app.js?v=11"></script>
 </body>
 
 </html>

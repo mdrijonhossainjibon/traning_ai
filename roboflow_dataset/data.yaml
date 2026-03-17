@@ -1,0 +1,13 @@
+train: ../train/images
+val: ../valid/images
+test: ../test/images
+
+nc: 1
+names: ['scooter']
+
+roboflow:
+  workspace: onlines-workspace
+  project: my-first-project-9luhs
+  version: 2
+  license: Private
+  url: https://app.roboflow.com/onlines-workspace/my-first-project-9luhs/2

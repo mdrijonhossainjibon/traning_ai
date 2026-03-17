@@ -1,0 +1,5 @@
+names:
+- scooter
+nc: 1
+train: D:\object_detection_api\roboflow_dataset\train\images
+val: D:\object_detection_api\roboflow_dataset\valid\images

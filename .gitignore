@@ -6,6 +6,8 @@ dataset/
 
 # Models
 *.pt
+!app/model/*.pt
+!yolov8n.pt
 
 # Cache files
 *.cache

@@ -1,9 +1,5 @@
 names:
-- bags
-- buckets
-- clock
-- curtains
-- hats
-nc: 5
+- washing
+nc: 1
 train: D:\object_detection_api\dataset\train\images
 val: D:\object_detection_api\dataset\val\images

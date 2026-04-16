@@ -38,43 +38,45 @@ A real-time object detection web application powered by YOLOv8 and FastAPI.
 
 ## Modern Frontend Design & API Integration Prompt
 
-Use this prompt to generate a cutting-edge, professional UI that fully utilizes the backend APIs.
+Use the following prompt to generate a cutting-edge, professional UI that fully utilizes the backend APIs. You can copy the code block below directly into your AI chat.
 
-> "Act as a World-Class UI/UX Designer and Frontend Expert. Your goal is to build 'Vision Sentinel v2.0'—a professional-grade AI Monitoring Dashboard.
-> 
-> ### 1. Ultra-Modern Visual Style
-> - **Design System**: **Glassmorphism** combined with a **Cyberpunk 2077** high-tech feel.
-> - **Aesthetics**: Use semi-transparent 'glass' panels with sharp neon borders, backdrop-blur (12px+), and high-contrast typography.
-> - **Color Palette**: 
->   - Background: Deep Midnight Navy (#020617).
->   - Primary Neon: Cyan (#22d3ee) for interactive elements.
->   - Secondary: Vivid Purple (#a855f7) for training/status highlights.
->   - Success: Emerald-500 for confirmations.
-> - **Animations**: Smooth micro-interactions, spring-physics based transitions, and subtle pulse glows on active detection slots.
-> 
-> ### 2. API-Driven Architecture (Crucial)
-> Start by implementing a **Connection Manager** that asks for the **Base URL** (default: `http://localhost:8000`).
-> 
-> #### A. Inference Engine (Using `POST /detect-batch`)
-> - Design a 3x3 high-fidelity image grid.
-> - When images are dropped, convert to Base64 and send a single batch request to `/detect-batch`.
-> - **Live Overlay**: Render detection labels and confidence scores directly over the images using absolute positioning.
-> - **Query Filter**: Add a sleek search-style input that updates the `question` field in the API payload to filter specific objects.
-> 
-> #### B. Training Lifecycle (Using `/train` and `/train/status`)
-> - Create a dedicated 'Training Laboratory' view.
-> - Trigger background training via `POST /train?dataset_type=...`.
-> - **Progress Monitoring**: Implement a real-time polling mechanism (3s interval) to `GET /train/status`.
-> - **Visual Feedback**: Map the `progress` percentage (0-100) to a modern circular progress ring or a glowing linear bar. Show "Status: Completed (100%)" only when the API returns the completed state.
-> 
-> #### C. Model Repository (Using `GET /models`)
-> - A list-view of all available `.pt` files. Show file size and path.
-> - Add a 'Hot Reload' button that calls `POST /reload` to swap models without restarting.
-> 
-> ### 3. UX Features
-> - **Latency Tracker**: Display the response time for every batch request in milliseconds.
-> - **Toast System**: Use floating notification cards for status updates (e.g., 'Model Reloaded Successfully').
-> - **System Diagnostics**: Display active model and device info by fetching `GET /info` on load."
+```text
+Act as a World-Class UI/UX Designer and Frontend Expert. Your goal is to build 'Vision Sentinel v2.0'—a professional-grade AI Monitoring Dashboard.
+
+### 1. Ultra-Modern Visual Style
+- **Design System**: Glassmorphism combined with a Cyberpunk 2077 high-tech feel.
+- **Aesthetics**: Use semi-transparent 'glass' panels with sharp neon borders, backdrop-blur (12px+), and high-contrast typography.
+- **Color Palette**: 
+  - Background: Deep Midnight Navy (#020617).
+  - Primary Neon: Cyan (#22d3ee) for interactive elements.
+  - Secondary: Vivid Purple (#a855f7) for training/status highlights.
+  - Success: Emerald-500 for confirmations.
+- **Animations**: Smooth micro-interactions, spring-physics based transitions, and subtle pulse glows on active detection slots.
+
+### 2. API-Driven Architecture (Crucial)
+Start by implementing a Connection Manager that asks for the Base URL (default: http://localhost:8000).
+
+#### A. Inference Engine (Using POST /detect-batch)
+- Design a 3x3 high-fidelity image grid.
+- When images are dropped, convert to Base64 and send a single batch request to /detect-batch.
+- Live Overlay: Render detection labels and confidence scores directly over the images using absolute positioning.
+- Query Filter: Add a sleek search-style input that updates the question field in the API payload to filter specific objects.
+
+#### B. Training Lifecycle (Using /train and /train/status)
+- Create a dedicated 'Training Laboratory' view.
+- Trigger background training via POST /train?dataset_type=...
+- Progress Monitoring: Implement a real-time polling mechanism (3s interval) to GET /train/status.
+- Visual Feedback: Map the progress percentage (0-100) to a modern circular progress ring or a glowing linear bar. Show "Status: Completed (100%)" only when the API returns the completed state.
+
+#### C. Model Repository (Using GET /models)
+- A list-view of all available .pt files. Show file size and path.
+- Add a 'Hot Reload' button that calls POST /reload to swap models without restarting.
+
+### 3. UX Features
+- Latency Tracker: Display the response time for every batch request in milliseconds.
+- Toast System: Use floating notification cards for status updates (e.g., 'Model Reloaded Successfully').
+- System Diagnostics: Display active model and device info by fetching GET /info on load.
+```
 
 ## Tech Stack
 

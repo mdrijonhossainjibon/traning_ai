@@ -1,27 +1,60 @@
 # Vision Sentinel - AI Object Detection API
 
-A real-time object detection web application powered by YOLOv8 and FastAPI. Features a modern UI with up to 9-slot image grid, batch processing, training data collection, and model management.
+A real-time object detection web application powered by YOLOv8 and FastAPI.
 
-## Features
+## API Endpoints
 
-- **Multi-image analysis** — Upload 1-9 images into the grid (or use the master batch drop) and run detection concurrently
-- **Batch detection API** — `/detect-batch` endpoint accepts Base64-encoded images and an optional question filter
-- **Training data collection** — Save labeled images via the UI (`/save-training-data`) or bulk upload (`/upload-multiple`)
-- **Model training** — Trigger YOLO training in the background (`/train`), supports Roboflow or custom datasets
-- **Model management** — List, download, and hot-reload `.pt` model files through the UI or API
-- **Real-time status** — Live training status polling, system info (model name, device), and latency reporting
+### 1. Object Detection
+- **POST `/detect`**
+  - Upload a single image for detection.
+  - Parameters: `file` (UploadFile), `conf_threshold` (float).
+- **POST `/detect-batch`**
+  - Process multiple images via Base64.
+  - Payload: `{ "imageData": ["b64_str", ...], "conf_threshold": 0.5, "question": "label" }`.
+
+### 2. Dataset & Training Data
+- **POST `/save-training-data`**
+  - Save an image with a label to the `training_data/` folder.
+- **POST `/upload-multiple`**
+  - Bulk upload multiple Base64 images for dataset collection.
+
+### 3. Training Control
+- **POST `/train`**
+  - Starts the YOLO training background process.
+  - Query Param: `dataset_type` (auto, roboflow, custom).
+- **GET `/train/status`**
+  - Returns current training status and progress percentage.
+  - Response: `{ "running": true, "status": "training", "progress": 62 }`.
+
+### 4. Model & System Info
+- **GET `/info`**
+  - Get active model name and processing device (CPU/CUDA).
+- **POST `/reload`**
+  - Hot-reload the model from `app/model/best.pt`.
+- **GET `/models`**
+  - List all available `.pt` files in the system.
+- **GET `/download-model/{path}`**
+  - Download a specific model file.
+
+## Frontend Design Prompt
+
+If you want to recreate or enhance the UI, use this prompt:
+
+> "Create a high-tech 'Vision Sentinel' dashboard using Tailwind CSS. 
+> Features: 
+> - A dark, cyberpunk aesthetic with neon-cyan (#22d3ee) and emerald accents.
+> - A 3x3 interactive image grid for image uploads and real-time detection feedback.
+> - A sidebar for configuration (confidence slider, target question input).
+> - A dedicated Training Mode modal for bulk dataset acquisition.
+> - Real-time system status indicators (CPU load, VRAM, API health).
+> - Animated progress bars for model training and grid loading status."
 
 ## Tech Stack
 
 - **Backend**: FastAPI + Uvicorn
-- **ML**: YOLOv8 (Ultralytics) with CUDA fallback to CPU
-- **Frontend**: Tailwind CSS, vanilla JavaScript
+- **ML**: YOLOv8 (Ultralytics)
+- **Frontend**: Tailwind CSS, Vanilla JS
 - **Containerization**: Docker
-
-## Prerequisites
-
-- Python 3.10+
-- (Optional) CUDA-compatible GPU for faster inference
 
 ## Quick Start
 

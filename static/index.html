@@ -505,6 +505,15 @@
                                 </svg>
                                 <span>START MODEL TRAINING</span>
                             </button>
+                            <div id="training-progress-container" class="mt-4 hidden">
+                                <div class="flex justify-between items-center mb-1">
+                                    <span class="text-[9px] font-mono text-emerald-500 uppercase">Training Progress</span>
+                                    <span id="training-progress-percent" class="text-[9px] font-mono text-emerald-500">0%</span>
+                                </div>
+                                <div class="w-full h-1 bg-slate-800 rounded-full overflow-hidden border border-emerald-500/20">
+                                    <div id="training-progress-bar" class="h-full bg-emerald-500 transition-all duration-500" style="width: 0%"></div>
+                                </div>
+                            </div>
                             <p id="trainStatus"
                                 class="mt-3 text-[10px] font-mono text-center text-slate-500 uppercase tracking-widest">
                                 Status: Idle</p>

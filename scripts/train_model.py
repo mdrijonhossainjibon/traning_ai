@@ -182,10 +182,26 @@ def train():
     print("🚀 Starting YOLO training...\n")
 
     model = YOLO("yolov8n.pt")
+    
+    total_epochs = 40
+    progress_file = Path("runs/train_progress.txt")
+    progress_file.parent.mkdir(parents=True, exist_ok=True)
+    
+    def on_train_epoch_end(trainer):
+        # trainer.epoch is 0-indexed
+        current_epoch = trainer.epoch + 1
+        percent = int((current_epoch / total_epochs) * 100)
+        try:
+            with open(progress_file, "w") as f:
+                f.write(str(percent))
+        except:
+            pass
+
+    model.add_callback("on_train_epoch_end", on_train_epoch_end)
 
     results = model.train(
         data=str(data_yaml),
-        epochs=40,          # Increased epochs slightly
+        epochs=total_epochs,
         imgsz=640,
         batch=4,
         project="runs/detect",
@@ -202,6 +218,10 @@ def train():
         hsv_s=0.0,
         hsv_v=0.0
     )
+
+    # Final progress 100%
+    with open(progress_file, "w") as f:
+        f.write("100")
 
     save_dir = Path(results.save_dir)
     best_model = save_dir / "weights" / "best.pt"

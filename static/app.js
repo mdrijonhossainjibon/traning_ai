@@ -96,6 +96,11 @@ function initElements() {
     el.saveBatchBtn = document.getElementById('saveBatchBtn');
     el.uploadStatusText = document.getElementById('upload-status-text');
 
+    // Training Progress Elements
+    el.trainingProgressContainer = document.getElementById('training-progress-container');
+    el.trainingProgressBar = document.getElementById('training-progress-bar');
+    el.trainingProgressPercent = document.getElementById('training-progress-percent');
+
     // Force hide modals
     if (el.modalOverlay) {
         el.modalOverlay.style.display = 'none';
@@ -511,9 +516,12 @@ async function handleConfirmTraining() {
     }
     if (el.startTrainBtn) el.startTrainBtn.disabled = true;
     if (el.trainStatus) {
-        el.trainStatus.textContent = 'Status: Initializing...';
+        el.trainStatus.textContent = 'Status: TRAINING (0%)';
         el.trainStatus.classList.add('text-neon');
     }
+    if (el.trainingProgressContainer) el.trainingProgressContainer.classList.remove('hidden');
+    if (el.trainingProgressBar) el.trainingProgressBar.style.width = '0%';
+    if (el.trainingProgressPercent) el.trainingProgressPercent.textContent = '0%';
 
     const selectedSource = document.querySelector('input[name="dataset_source"]:checked');
     const datasetSource = selectedSource ? selectedSource.value : 'roboflow';
@@ -563,7 +571,23 @@ async function pollTrainingStatus() {
             const response = await fetch('/train/status');
             const data = await response.json();
 
-            if (el.trainStatus) el.trainStatus.textContent = `Status: ${data.status.toUpperCase()}`;
+            if (el.trainStatus) {
+                let statusText = `Status: ${data.status.toUpperCase()}`;
+                
+                // CRITICAL FIX: Always show percentage if progress is provided by API
+                if (typeof data.progress !== 'undefined') {
+                    const pct = data.progress;
+                    statusText += ` (${pct}%)`;
+                    
+                    // Force update Progress Bar UI whenever we have progress data
+                    if (el.trainingProgressContainer) el.trainingProgressContainer.classList.remove('hidden');
+                    if (el.trainingProgressBar) el.trainingProgressBar.style.width = `${pct}%`;
+                    if (el.trainingProgressPercent) el.trainingProgressPercent.textContent = `${pct}%`;
+                } else if (!data.running && data.status === 'idle') {
+                    if (el.trainingProgressContainer) el.trainingProgressContainer.classList.add('hidden');
+                }
+                el.trainStatus.textContent = statusText;
+            }
 
             if (data.running) {
                 wasRunning = true;

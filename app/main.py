@@ -252,12 +252,32 @@ async def get_training_status():
         return {"running": False, "status": "idle"}
     
     poll = training_process.poll()
+    
+    # Check for progress file
+    progress = 0
+    progress_file = os.path.join("runs", "train_progress.txt")
+    if os.path.exists(progress_file):
+        try:
+            with open(progress_file, "r") as f:
+                content = f.read().strip()
+                if content:
+                    progress = int(content)
+        except Exception as e:
+            print(f"Error reading progress file: {e}")
+            progress = 0
+
     if poll is None:
-        return {"running": True, "status": "training"}
+        # If it's running but file doesn't exist yet, return 0
+        final_progress = progress if progress > 0 else 0
+        return {
+            "running": True, 
+            "status": "training",
+            "progress": final_progress
+        }
     elif poll == 0:
-        return {"running": False, "status": "completed"}
+        return {"running": False, "status": "completed", "progress": 100}
     else:
-        return {"running": False, "status": f"failed (code {poll})"}
+        return {"running": False, "status": f"failed (code {poll})", "progress": progress}
 
 @app.get("/info")
 async def get_info():

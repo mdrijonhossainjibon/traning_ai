@@ -36,34 +36,45 @@ A real-time object detection web application powered by YOLOv8 and FastAPI.
 - **GET `/download-model/{path}`**
   - Download a specific model file.
 
-## Frontend Design & Implementation Prompt
+## Modern Frontend Design & API Integration Prompt
 
-Use this comprehensive prompt to generate or improve the frontend. It includes the logic for connecting to the backend.
+Use this prompt to generate a cutting-edge, professional UI that fully utilizes the backend APIs.
 
-> "Act as a Senior Frontend Engineer and UI/UX Designer. Create a high-tech 'Vision Sentinel' dashboard using **Tailwind CSS** and **Vanilla JavaScript** (or React).
+> "Act as a World-Class UI/UX Designer and Frontend Expert. Your goal is to build 'Vision Sentinel v2.0'—a professional-grade AI Monitoring Dashboard.
 > 
-> ### 1. Visual Aesthetic
-> - **Theme**: Dark, cyberpunk/futuristic aesthetic.
-> - **Colors**: Deep Slate backgrounds, Neon-Cyan (#22d3ee) for primary actions, and Emerald-Green for success/training states.
-> - **Animations**: Subtle glow effects, animated progress bars, and pulse indicators for system health.
+> ### 1. Ultra-Modern Visual Style
+> - **Design System**: **Glassmorphism** combined with a **Cyberpunk 2077** high-tech feel.
+> - **Aesthetics**: Use semi-transparent 'glass' panels with sharp neon borders, backdrop-blur (12px+), and high-contrast typography.
+> - **Color Palette**: 
+>   - Background: Deep Midnight Navy (#020617).
+>   - Primary Neon: Cyan (#22d3ee) for interactive elements.
+>   - Secondary: Vivid Purple (#a855f7) for training/status highlights.
+>   - Success: Emerald-500 for confirmations.
+> - **Animations**: Smooth micro-interactions, spring-physics based transitions, and subtle pulse glows on active detection slots.
 > 
-> ### 2. Core Functional Components
-> - **API Configuration**: Start by asking the user for a **Base URL** (e.g., `http://localhost:8000`) and store it globally for all API calls.
-> - **Inference Grid**: A responsive 3x3 interactive grid. Each slot must support drag-and-drop uploads and display real-time detection bounding boxes.
-> - **Control Sidebar**: 
->   - Confidence Threshold slider (0.01 to 1.0).
->   - 'Target Object' text input for filtering results (calls `/detect-batch` with the `question` parameter).
-> - **Training Dashboard**: A secondary modal for mass dataset collection with bulk image upload functionality.
+> ### 2. API-Driven Architecture (Crucial)
+> Start by implementing a **Connection Manager** that asks for the **Base URL** (default: `http://localhost:8000`).
 > 
-> ### 3. API Integration Logic
-> - **Real-time Status**: Poll the `/train/status` endpoint every 3 seconds during training to update a visual circular or linear progress bar using the `progress` field.
-> - **Batch Processing**: Use the `POST /detect-batch` endpoint for the 3x3 grid. Send images as Base64 strings in the `imageData` array.
-> - **Model Management**: Fetch available models from `/models` and display them in a list with download buttons.
+> #### A. Inference Engine (Using `POST /detect-batch`)
+> - Design a 3x3 high-fidelity image grid.
+> - When images are dropped, convert to Base64 and send a single batch request to `/detect-batch`.
+> - **Live Overlay**: Render detection labels and confidence scores directly over the images using absolute positioning.
+> - **Query Filter**: Add a sleek search-style input that updates the `question` field in the API payload to filter specific objects.
 > 
-> ### 4. UX Requirements
-> - Implement a Toast notification system for success/error messages.
-> - Show system latency (response time) for every detection request.
-> - Ensure the layout is fully responsive and looks like a professional military-grade monitoring system."
+> #### B. Training Lifecycle (Using `/train` and `/train/status`)
+> - Create a dedicated 'Training Laboratory' view.
+> - Trigger background training via `POST /train?dataset_type=...`.
+> - **Progress Monitoring**: Implement a real-time polling mechanism (3s interval) to `GET /train/status`.
+> - **Visual Feedback**: Map the `progress` percentage (0-100) to a modern circular progress ring or a glowing linear bar. Show "Status: Completed (100%)" only when the API returns the completed state.
+> 
+> #### C. Model Repository (Using `GET /models`)
+> - A list-view of all available `.pt` files. Show file size and path.
+> - Add a 'Hot Reload' button that calls `POST /reload` to swap models without restarting.
+> 
+> ### 3. UX Features
+> - **Latency Tracker**: Display the response time for every batch request in milliseconds.
+> - **Toast System**: Use floating notification cards for status updates (e.g., 'Model Reloaded Successfully').
+> - **System Diagnostics**: Display active model and device info by fetching `GET /info` on load."
 
 ## Tech Stack
 

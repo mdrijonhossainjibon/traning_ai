@@ -36,18 +36,34 @@ A real-time object detection web application powered by YOLOv8 and FastAPI.
 - **GET `/download-model/{path}`**
   - Download a specific model file.
 
-## Frontend Design Prompt
+## Frontend Design & Implementation Prompt
 
-If you want to recreate or enhance the UI, use this prompt:
+Use this comprehensive prompt to generate or improve the frontend. It includes the logic for connecting to the backend.
 
-> "Create a high-tech 'Vision Sentinel' dashboard using Tailwind CSS. 
-> Features: 
-> - A dark, cyberpunk aesthetic with neon-cyan (#22d3ee) and emerald accents.
-> - A 3x3 interactive image grid for image uploads and real-time detection feedback.
-> - A sidebar for configuration (confidence slider, target question input).
-> - A dedicated Training Mode modal for bulk dataset acquisition.
-> - Real-time system status indicators (CPU load, VRAM, API health).
-> - Animated progress bars for model training and grid loading status."
+> "Act as a Senior Frontend Engineer and UI/UX Designer. Create a high-tech 'Vision Sentinel' dashboard using **Tailwind CSS** and **Vanilla JavaScript** (or React).
+> 
+> ### 1. Visual Aesthetic
+> - **Theme**: Dark, cyberpunk/futuristic aesthetic.
+> - **Colors**: Deep Slate backgrounds, Neon-Cyan (#22d3ee) for primary actions, and Emerald-Green for success/training states.
+> - **Animations**: Subtle glow effects, animated progress bars, and pulse indicators for system health.
+> 
+> ### 2. Core Functional Components
+> - **API Configuration**: Start by asking the user for a **Base URL** (e.g., `http://localhost:8000`) and store it globally for all API calls.
+> - **Inference Grid**: A responsive 3x3 interactive grid. Each slot must support drag-and-drop uploads and display real-time detection bounding boxes.
+> - **Control Sidebar**: 
+>   - Confidence Threshold slider (0.01 to 1.0).
+>   - 'Target Object' text input for filtering results (calls `/detect-batch` with the `question` parameter).
+> - **Training Dashboard**: A secondary modal for mass dataset collection with bulk image upload functionality.
+> 
+> ### 3. API Integration Logic
+> - **Real-time Status**: Poll the `/train/status` endpoint every 3 seconds during training to update a visual circular or linear progress bar using the `progress` field.
+> - **Batch Processing**: Use the `POST /detect-batch` endpoint for the 3x3 grid. Send images as Base64 strings in the `imageData` array.
+> - **Model Management**: Fetch available models from `/models` and display them in a list with download buttons.
+> 
+> ### 4. UX Requirements
+> - Implement a Toast notification system for success/error messages.
+> - Show system latency (response time) for every detection request.
+> - Ensure the layout is fully responsive and looks like a professional military-grade monitoring system."
 
 ## Tech Stack
 

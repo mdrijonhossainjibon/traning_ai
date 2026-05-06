@@ -111,6 +111,12 @@ Place your trained `.pt` file at `app/model/best.pt`. If unavailable the app fal
 python -m app.main
 ```
 
+## if eror pkg
+
+```bash
+pip install ultralytics
+```
+
 Open `http://localhost:8000` in your browser.
 
 ## Project Structure

@@ -6,31 +6,28 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Vision Sentinel | AI Object Detection</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link
-        href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap"
-        rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
     <script>
         tailwind.config = {
             theme: {
                 extend: {
                     fontFamily: {
-                        sans: ['Plus Jakarta Sans', 'sans-serif'],
+                        sans: ['Inter', 'sans-serif'],
                         mono: ['JetBrains Mono', 'monospace'],
                     },
                     colors: {
-                        dark: '#020617',
-                        'dark-accent': '#0f172a',
-                        neon: '#22d3ee',
-                        'neon-purple': '#a855f7',
-                    },
-                    animation: {
-                        'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
-                        'glow': 'glow 2s ease-in-out infinite alternate',
-                    },
-                    keyframes: {
-                        glow: {
-                            '0%': { boxShadow: '0 0 5px rgba(34, 211, 238, 0.2)' },
-                            '100%': { boxShadow: '0 0 20px rgba(34, 211, 238, 0.6)' },
+                        surface: {
+                            0: '#08090d',
+                            1: '#0d0f16',
+                            2: '#13161f',
+                            3: '#1a1d2b',
+                            4: '#222638',
+                        },
+                        accent: {
+                            cyan: '#00e5ff',
+                            purple: '#b44dff',
+                            emerald: '#34d399',
+                            rose: '#fb7185',
                         }
                     }
                 }
@@ -38,306 +35,357 @@
         }
     </script>
     <style>
+        * { box-sizing: border-box; }
+
         body {
-            background: radial-gradient(circle at 50% 50%, #1e293b 0%, #020617 100%);
+            background: #08090d;
             min-height: 100vh;
+            overflow-x: hidden;
         }
+
+        /* Ambient Background */
+        body::before {
+            content: '';
+            position: fixed;
+            inset: 0;
+            background:
+                radial-gradient(ellipse 80% 60% at 10% 20%, rgba(0,229,255,0.04) 0%, transparent 60%),
+                radial-gradient(ellipse 60% 50% at 90% 80%, rgba(180,77,255,0.04) 0%, transparent 60%),
+                radial-gradient(ellipse 40% 40% at 50% 50%, rgba(52,211,153,0.02) 0%, transparent 60%);
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        body > * { position: relative; z-index: 1; }
 
         .glass {
-            background: rgba(15, 23, 42, 0.6);
-            backdrop-filter: blur(12px);
-            border: 1px solid rgba(255, 255, 255, 0.1);
+            background: rgba(13, 15, 22, 0.7);
+            backdrop-filter: blur(20px) saturate(1.2);
+            border: 1px solid rgba(255,255,255,0.06);
         }
 
-        .neo-border {
-            border: 1px solid rgba(34, 211, 238, 0.3);
+        .glass-strong {
+            background: rgba(19, 22, 31, 0.85);
+            backdrop-filter: blur(24px) saturate(1.3);
+            border: 1px solid rgba(255,255,255,0.08);
         }
 
-        .custom-scrollbar::-webkit-scrollbar {
-            width: 6px;
+        .glow-border {
+            border: 1px solid rgba(0,229,255,0.15);
+            box-shadow: 0 0 0 1px rgba(0,229,255,0.05), inset 0 1px 0 rgba(255,255,255,0.03);
         }
 
-        .custom-scrollbar::-webkit-scrollbar-track {
-            background: transparent;
+        .glow-border-purple {
+            border: 1px solid rgba(180,77,255,0.15);
+            box-shadow: 0 0 0 1px rgba(180,77,255,0.05), inset 0 1px 0 rgba(255,255,255,0.03);
         }
 
-        .custom-scrollbar::-webkit-scrollbar-thumb {
-            background: rgba(34, 211, 238, 0.2);
-            border-radius: 10px;
+        .glow-border-emerald {
+            border: 1px solid rgba(52,211,153,0.2);
+            box-shadow: 0 0 0 1px rgba(52,211,153,0.06);
         }
 
-        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-            background: rgba(34, 211, 238, 0.4);
+        .shimmer {
+            background: linear-gradient(110deg, transparent 25%, rgba(255,255,255,0.03) 37%, transparent 63%);
+            background-size: 200% 100%;
+            animation: shimmer 3s ease-in-out infinite;
         }
 
-        #canvas-container {
-            position: relative;
-            display: inline-block;
+        @keyframes shimmer {
+            0% { background-position: 200% 0; }
+            100% { background-position: -200% 0; }
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-4px); }
+        }
+
+        @keyframes pulse-ring {
+            0% { box-shadow: 0 0 0 0 rgba(0,229,255,0.3); }
+            70% { box-shadow: 0 0 0 8px rgba(0,229,255,0); }
+            100% { box-shadow: 0 0 0 0 rgba(0,229,255,0); }
+        }
+
+        @keyframes scan-line {
+            0% { top: -2px; opacity: 0; }
+            10% { opacity: 1; }
+            90% { opacity: 1; }
+            100% { top: calc(100% + 2px); opacity: 0; }
         }
 
         .detection-box {
             position: absolute;
-            border: 2px solid #22d3ee;
-            background: rgba(34, 211, 238, 0.1);
+            border: 1.5px solid #00e5ff;
+            background: rgba(0,229,255,0.06);
             pointer-events: none;
+            border-radius: 4px;
             transition: all 0.3s ease;
+        }
+
+        .detection-box::after {
+            content: '';
+            position: absolute;
+            left: 0;
+            width: 100%;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, #00e5ff, transparent);
+            animation: scan-line 2.5s ease-in-out infinite;
+            opacity: 0.5;
         }
 
         .label-tag {
             position: absolute;
-            background: #22d3ee;
-            color: #020617;
-            padding: 2px 6px;
-            font-size: 10px;
-            font-weight: bold;
+            background: rgba(0,229,255,0.9);
+            color: #08090d;
+            padding: 2px 8px;
+            font-size: 9px;
+            font-weight: 700;
             text-transform: uppercase;
+            letter-spacing: 0.08em;
             bottom: 100%;
-            left: -2px;
+            left: -1px;
             white-space: nowrap;
+            border-radius: 3px 3px 0 0;
+            font-family: 'JetBrains Mono', monospace;
         }
 
-        /* Toast Styles */
+        /* Scrollbar */
+        .custom-scrollbar::-webkit-scrollbar { width: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(0,229,255,0.15); border-radius: 10px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: rgba(0,229,255,0.3); }
+
+        /* Grid Slots */
+        .grid-slot {
+            background: rgba(13,15,22,0.5);
+            box-shadow: inset 0 2px 8px rgba(0,0,0,0.3);
+        }
+        .grid-slot.active {
+            border-color: rgba(0,229,255,0.4) !important;
+            background: rgba(0,229,255,0.03);
+            box-shadow: inset 0 2px 8px rgba(0,0,0,0.2), 0 0 20px rgba(0,229,255,0.05);
+        }
+
+        /* Range Input */
+        input[type="range"] {
+            -webkit-appearance: none;
+            appearance: none;
+            height: 6px;
+            background: rgba(255,255,255,0.06);
+            border-radius: 99px;
+            outline: none;
+        }
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: #00e5ff;
+            cursor: pointer;
+            box-shadow: 0 0 12px rgba(0,229,255,0.4), 0 0 0 4px rgba(0,229,255,0.1);
+            transition: box-shadow 0.2s;
+        }
+        input[type="range"]::-webkit-slider-thumb:hover {
+            box-shadow: 0 0 20px rgba(0,229,255,0.6), 0 0 0 6px rgba(0,229,255,0.15);
+        }
+
+        /* Toast */
         #toast-container {
             position: fixed;
-            top: 24px;
-            right: 24px;
+            top: 20px;
+            right: 20px;
             z-index: 9999;
             display: flex;
             flex-direction: column;
-            gap: 12px;
+            gap: 10px;
         }
-
         .toast {
-            background: rgba(15, 23, 42, 0.9);
-            backdrop-filter: blur(8px);
-            border-left: 4px solid #22d3ee;
-            color: white;
-            padding: 16px 24px;
+            background: rgba(13,15,22,0.95);
+            backdrop-filter: blur(16px);
+            border-left: 3px solid #00e5ff;
+            color: #e2e8f0;
+            padding: 14px 20px;
             border-radius: 12px;
-            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.4);
+            box-shadow: 0 8px 32px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.05);
             font-family: 'JetBrains Mono', monospace;
-            font-size: 12px;
-            min-width: 300px;
+            font-size: 11px;
+            min-width: 280px;
             display: flex;
             align-items: center;
             justify-content: space-between;
             transform: translateX(120%);
-            transition: transform 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55);
-            border-top: 1px solid rgba(255, 255, 255, 0.05);
-            border-right: 1px solid rgba(255, 255, 255, 0.05);
+            transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
         }
+        .toast.show { transform: translateX(0); }
+        .toast.success { border-left-color: #34d399; }
+        .toast.error { border-left-color: #fb7185; }
+        .toast.info { border-left-color: #00e5ff; }
 
-        .toast.show {
-            transform: translateX(0);
-        }
-
-        .toast.success {
-            border-left-color: #10b981;
-        }
-
-        .toast.error {
-            border-left-color: #ef4444;
-        }
-
-        .toast.info {
-            border-left-color: #22d3ee;
-        }
-
-        /* Custom Modal */
-        #modal-overlay {
+        /* Modal Overlay Base */
+        .modal-overlay {
             position: fixed;
             inset: 0;
-            background: rgba(2, 6, 23, 0.8);
-            backdrop-filter: blur(4px);
+            background: rgba(8,9,13,0.85);
+            backdrop-filter: blur(8px);
             z-index: 10000;
             display: none;
             align-items: center;
             justify-content: center;
+            padding: 16px;
         }
+        .modal-overlay.show { display: flex; }
 
-        #modal-overlay.show {
-            display: flex;
-        }
-
-        .modal-content {
-            background: #0f172a;
-            border: 1px solid rgba(34, 211, 238, 0.3);
-            border-radius: 24px;
-            padding: 32px;
-            max-width: 400px;
-            width: 90%;
+        .modal-box {
+            background: #0d0f16;
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 20px;
+            padding: 28px;
+            width: 100%;
+            box-shadow: 0 24px 80px rgba(0,0,0,0.6), 0 0 80px rgba(0,229,255,0.03);
             font-family: 'JetBrains Mono', monospace;
-            box-shadow: 0 0 50px rgba(34, 211, 238, 0.1);
+        }
+
+        /* Button Hover Glow */
+        .btn-glow:hover {
+            box-shadow: 0 0 24px rgba(0,229,255,0.2), 0 4px 16px rgba(0,229,255,0.1);
+        }
+
+        .btn-glow-purple:hover {
+            box-shadow: 0 0 24px rgba(180,77,255,0.2), 0 4px 16px rgba(180,77,255,0.1);
+        }
+
+        .btn-glow-emerald:hover {
+            box-shadow: 0 0 24px rgba(52,211,153,0.2), 0 4px 16px rgba(52,211,153,0.1);
+        }
+
+        /* Selection */
+        ::selection {
+            background: rgba(0,229,255,0.3);
+            color: #fff;
         }
     </style>
 </head>
 
-<body class="text-slate-200 font-sans selection:bg-neon selection:text-dark">
+<body class="text-slate-300 font-sans antialiased">
+
     <!-- Toast Container -->
     <div id="toast-container"></div>
 
-    <!-- Custom Modal -->
-    <div id="modal-overlay" style="display:none;">
-        <div class="modal-content text-center">
-            <div
-                class="w-16 h-16 bg-neon/10 rounded-full flex items-center justify-center mx-auto mb-6 border border-neon/20">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-neon" fill="none" viewBox="0 0 24 24"
-                    stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                        d="M13 10V3L4 14h7v7l9-11h-7z" />
+    <!-- Training Confirmation Modal -->
+    <div id="modal-overlay" class="modal-overlay">
+        <div class="modal-box max-w-md text-center">
+            <div class="w-14 h-14 rounded-2xl bg-accent-cyan/10 border border-accent-cyan/20 flex items-center justify-center mx-auto mb-6" style="animation: pulse-ring 2s infinite;">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-7 w-7 text-accent-cyan" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
                 </svg>
             </div>
-            <h3 class="text-xl font-bold text-white mb-2 uppercase">Protocol Initiation</h3>
-            <p class="text-slate-400 text-xs mb-6 leading-relaxed">Start training a new neural network model with all
-                currently saved datasets? This operation is resource intensive.</p>
+            <h3 class="text-lg font-bold text-white mb-2 uppercase tracking-wider">Protocol Initiation</h3>
+            <p class="text-slate-500 text-[11px] mb-6 leading-relaxed">Start training a new neural network model with all currently saved datasets? This operation is resource intensive.</p>
 
-            <div class="mb-8 text-left bg-dark/50 p-4 rounded-xl border border-slate-700/50">
-                <label class="block text-[10px] font-mono text-neon uppercase mb-3 tracking-widest">Select Dataset
-                    Source:</label>
+            <div class="mb-7 text-left bg-surface-0/60 p-4 rounded-xl border border-white/5">
+                <label class="block text-[9px] font-mono text-accent-cyan/80 uppercase mb-3 tracking-[0.2em]">Select Dataset Source:</label>
                 <div class="space-y-3">
                     <label class="flex items-start space-x-3 cursor-pointer group">
                         <div class="flex items-center h-5">
-                            <input type="radio" name="dataset_source" value="roboflow" checked
-                                class="w-4 h-4 text-neon bg-dark border-slate-600 focus:ring-neon focus:ring-2">
+                            <input type="radio" name="dataset_source" value="roboflow" checked class="w-4 h-4 text-accent-cyan bg-surface-0 border-slate-700 focus:ring-accent-cyan focus:ring-2">
                         </div>
                         <div class="flex flex-col">
-                            <span class="text-xs font-bold text-white group-hover:text-neon transition-colors">Roboflow
-                                Dataset</span>
-                            <span class="text-[10px] text-slate-500 font-mono">High Accuracy (roboflow_dataset/)</span>
+                            <span class="text-[11px] font-bold text-white group-hover:text-accent-cyan transition-colors">Roboflow Dataset</span>
+                            <span class="text-[9px] text-slate-600 font-mono">High Accuracy (roboflow_dataset/)</span>
                         </div>
                     </label>
                     <label class="flex items-start space-x-3 cursor-pointer group">
                         <div class="flex items-center h-5">
-                            <input type="radio" name="dataset_source" value="custom"
-                                class="w-4 h-4 text-neon bg-dark border-slate-600 focus:ring-neon focus:ring-2">
+                            <input type="radio" name="dataset_source" value="custom" class="w-4 h-4 text-accent-cyan bg-surface-0 border-slate-700 focus:ring-accent-cyan focus:ring-2">
                         </div>
                         <div class="flex flex-col">
-                            <span class="text-xs font-bold text-white group-hover:text-neon transition-colors">Web UI
-                                Custom</span>
-                            <span class="text-[10px] text-slate-500 font-mono">Standard Accuracy (training_data/)</span>
+                            <span class="text-[11px] font-bold text-white group-hover:text-accent-cyan transition-colors">Web UI Custom</span>
+                            <span class="text-[9px] text-slate-600 font-mono">Standard Accuracy (training_data/)</span>
                         </div>
                     </label>
                 </div>
             </div>
 
             <div class="flex space-x-3">
-                <button id="cancelModal"
-                    class="flex-1 py-3 rounded-xl border border-slate-700 text-slate-400 text-xs font-bold hover:bg-slate-800 transition-all uppercase">Abort</button>
-                <button id="confirmModal"
-                    class="flex-1 py-3 rounded-xl bg-neon text-dark text-xs font-bold hover:bg-white transition-all uppercase shadow-lg shadow-neon/20">Execute</button>
+                <button id="cancelModal" class="flex-1 py-3 rounded-xl border border-white/10 text-slate-500 text-[10px] font-bold hover:bg-white/5 hover:text-slate-300 transition-all uppercase tracking-wider">Abort</button>
+                <button id="confirmModal" class="flex-1 py-3 rounded-xl bg-accent-cyan text-surface-0 text-[10px] font-bold hover:bg-white transition-all uppercase tracking-wider shadow-lg shadow-accent-cyan/20">Execute</button>
             </div>
         </div>
     </div>
 
     <!-- Models Modal -->
-    <div id="models-modal-overlay"
-        class="fixed inset-0 bg-dark/80 backdrop-blur-md z-[10000] hidden items-center justify-center p-4">
-        <div class="modal-content max-w-2xl w-full max-h-[80vh] flex flex-col">
+    <div id="models-modal-overlay" class="modal-overlay">
+        <div class="modal-box max-w-2xl max-h-[80vh] flex flex-col">
             <div class="flex justify-between items-center mb-6">
-                <h3 class="text-xl font-bold text-white uppercase tracking-wider">Available Neural Models</h3>
-                <button id="closeModelsModal" class="text-slate-500 hover:text-white transition-colors">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24"
-                        stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                            d="M6 18L18 6M6 6l12 12" />
-                    </svg>
+                <h3 class="text-lg font-bold text-white uppercase tracking-wider">Available Neural Models</h3>
+                <button id="closeModelsModal" class="text-slate-600 hover:text-white transition-colors p-1 rounded-lg hover:bg-white/5">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
                 </button>
             </div>
-
             <div id="models-list-container" class="space-y-3 overflow-y-auto custom-scrollbar pr-2 mb-6 min-h-[200px]">
-                <!-- Models will be listed here -->
-                <div class="text-center py-10 text-slate-500 animate-pulse">Scanning server for model artifacts...</div>
+                <div class="text-center py-12 text-slate-600 shimmer rounded-xl">Scanning server for model artifacts...</div>
             </div>
-
-            <div class="pt-6 border-t border-slate-800 flex justify-end">
-                <button id="refreshModelsBtn"
-                    class="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-white text-xs font-bold transition-all uppercase flex items-center space-x-2">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24"
-                        stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                            d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                    </svg>
+            <div class="pt-5 border-t border-white/5 flex justify-end">
+                <button id="refreshModelsBtn" class="px-5 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 text-white text-[10px] font-bold transition-all uppercase tracking-wider flex items-center space-x-2 border border-white/5">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
                     <span>Refresh List</span>
                 </button>
             </div>
         </div>
     </div>
 
-    <!-- Training Mode Modal (Unlimited Upload) -->
-    <div id="training-modal-overlay"
-        class="fixed inset-0 bg-dark/90 backdrop-blur-xl z-[10000] hidden items-center justify-center p-4">
-        <div class="modal-content max-w-4xl w-full max-h-[90vh] flex flex-col scale-up">
+    <!-- Training Mode Modal -->
+    <div id="training-modal-overlay" class="modal-overlay">
+        <div class="modal-box max-w-4xl max-h-[90vh] flex flex-col">
             <div class="flex justify-between items-center mb-8">
                 <div>
-                    <h3 class="text-2xl font-bold text-white uppercase tracking-tighter flex items-center">
-                        <span class="w-3 h-3 bg-emerald-500 rounded-full mr-3 animate-pulse"></span>
+                    <h3 class="text-xl font-bold text-white uppercase tracking-tight flex items-center">
+                        <span class="w-2.5 h-2.5 bg-accent-emerald rounded-full mr-3 animate-pulse"></span>
                         Neural Training Mode
                     </h3>
-                    <p class="text-xs text-slate-500 font-mono mt-1 uppercase">Unlimited Dataset Acquisition System</p>
+                    <p class="text-[10px] text-slate-600 font-mono mt-1 uppercase tracking-[0.2em]">Unlimited Dataset Acquisition System</p>
                 </div>
-                <button id="closeTrainingModal" class="text-slate-500 hover:text-white transition-colors p-2">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24"
-                        stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                            d="M6 18L18 6M6 6l12 12" />
-                    </svg>
+                <button id="closeTrainingModal" class="text-slate-600 hover:text-white transition-colors p-2 rounded-lg hover:bg-white/5">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
                 </button>
             </div>
 
-            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 flex-1 overflow-hidden">
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 flex-1 overflow-hidden">
                 <!-- Left: Upload Zone -->
                 <div class="flex flex-col space-y-4">
-                    <div id="training-drop-zone"
-                        class="flex-1 border-2 border-dashed border-slate-700 rounded-3xl flex flex-col items-center justify-center p-12 transition-all hover:border-emerald-500/50 hover:bg-emerald-500/5 group cursor-pointer relative overflow-hidden text-center">
+                    <div id="training-drop-zone" class="flex-1 border-2 border-dashed border-white/10 rounded-2xl flex flex-col items-center justify-center p-10 transition-all hover:border-accent-emerald/40 hover:bg-accent-emerald/[0.02] group cursor-pointer relative overflow-hidden text-center min-h-[220px]">
                         <input type="file" id="training-batch-input" multiple class="hidden" accept="image/*">
-                        <div
-                            class="absolute inset-0 bg-gradient-to-t from-emerald-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+                        <div class="absolute inset-0 bg-gradient-to-t from-accent-emerald/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"></div>
+                        <div class="w-14 h-14 bg-surface-2 rounded-xl flex items-center justify-center mb-4 mx-auto group-hover:scale-110 transition-transform text-slate-600 group-hover:text-accent-emerald border border-white/5">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
                         </div>
-
-                        <div
-                            class="w-16 h-16 bg-slate-800 rounded-2xl flex items-center justify-center mb-4 mx-auto group-hover:scale-110 transition-transform text-slate-500 group-hover:text-emerald-400">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24"
-                                stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                    d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                            </svg>
-                        </div>
-                        <p class="text-white font-bold uppercase tracking-widest text-sm mb-1">Drop unlimited images</p>
-                        <p class="text-slate-500 text-[10px] font-mono uppercase">Batch processing enabled for mass
-                            dataset collection</p>
+                        <p class="text-white font-bold uppercase tracking-[0.2em] text-[11px] mb-1">Drop unlimited images</p>
+                        <p class="text-slate-600 text-[9px] font-mono uppercase tracking-wider">Batch processing enabled</p>
                     </div>
-
-                    <div class="glass p-5 rounded-2xl border border-slate-800">
-                        <label
-                            class="text-[10px] font-mono text-emerald-400 uppercase mb-2 block tracking-widest">Target
-                            Object Label</label>
-                        <input type="text" id="batch-train-label" placeholder="e.g. CROCODILE, FIRE_HYDRANT"
-                            class="w-full bg-dark/60 border border-slate-700 rounded-xl px-4 py-3 text-sm focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 outline-none font-mono text-white transition-all uppercase">
+                    <div class="glass p-4 rounded-xl border border-white/5">
+                        <label class="text-[9px] font-mono text-accent-emerald/80 uppercase mb-2 block tracking-[0.2em]">Target Object Label</label>
+                        <input type="text" id="batch-train-label" placeholder="e.g. CROCODILE, FIRE_HYDRANT" class="w-full bg-surface-0/60 border border-white/8 rounded-lg px-4 py-2.5 text-[11px] focus:border-accent-emerald/40 focus:ring-1 focus:ring-accent-emerald/20 outline-none font-mono text-white transition-all uppercase placeholder:text-slate-700">
                     </div>
                 </div>
 
                 <!-- Right: Preview & Stats -->
                 <div class="flex flex-col space-y-4">
-                    <div
-                        class="flex-1 bg-dark/40 border border-slate-800 rounded-3xl p-4 overflow-y-auto custom-scrollbar">
+                    <div class="flex-1 bg-surface-0/40 border border-white/5 rounded-2xl p-3 overflow-y-auto custom-scrollbar min-h-[180px]">
                         <div id="batch-preview-grid" class="grid grid-cols-4 gap-2">
-                            <!-- Thumbnails -->
-                            <div
-                                class="aspect-square rounded-lg border border-slate-700 border-dashed flex items-center justify-center text-slate-700">
-                                <span class="text-[10px] font-mono">WAITING</span>
+                            <div class="aspect-square rounded-lg border border-dashed border-white/8 flex items-center justify-center text-slate-700">
+                                <span class="text-[8px] font-mono tracking-wider">WAIT</span>
                             </div>
                         </div>
                     </div>
-
-                    <div class="flex items-center justify-between px-2">
+                    <div class="flex items-center justify-between px-1">
                         <div class="flex flex-col">
-                            <span id="batch-count-text" class="text-xs font-mono text-white">0 IMAGES SELECTED</span>
-                            <span id="upload-status-text"
-                                class="text-[9px] text-slate-500 uppercase tracking-widest">Ready for deployment</span>
+                            <span id="batch-count-text" class="text-[10px] font-mono text-white tracking-wider">0 IMAGES SELECTED</span>
+                            <span id="upload-status-text" class="text-[8px] text-slate-600 uppercase tracking-[0.2em]">Ready for deployment</span>
                         </div>
-                        <button id="saveBatchBtn" disabled
-                            class="px-8 py-3 rounded-xl bg-emerald-500 text-dark font-bold text-xs transition-all uppercase tracking-widest hover:scale-105 active:scale-95 disabled:opacity-20 disabled:scale-100 disabled:cursor-not-allowed">
-                            Commit to Dataset
+                        <button id="saveBatchBtn" disabled class="px-6 py-2.5 rounded-xl bg-accent-emerald text-surface-0 font-bold text-[10px] transition-all uppercase tracking-[0.15em] hover:scale-[1.02] active:scale-[0.98] disabled:opacity-15 disabled:scale-100 disabled:cursor-not-allowed btn-glow-emerald">
+                            Commit Dataset
                         </button>
                     </div>
                 </div>
@@ -346,432 +394,291 @@
     </div>
 
     <!-- Navbar -->
-    <nav class="p-6">
+    <nav class="px-4 sm:px-6 py-4 sm:py-5">
         <div class="max-w-7xl mx-auto flex justify-between items-center">
             <div class="flex items-center space-x-3">
-                <div
-                    class="w-10 h-10 bg-gradient-to-br from-neon to-neon-purple rounded-xl flex items-center justify-center shadow-lg shadow-neon/20">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-dark" fill="none" viewBox="0 0 24 24"
-                        stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                            d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                            d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                <div class="w-9 h-9 bg-gradient-to-br from-accent-cyan to-accent-purple rounded-xl flex items-center justify-center shadow-lg shadow-accent-cyan/10 relative overflow-hidden">
+                    <div class="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent"></div>
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-white relative z-10" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
                     </svg>
                 </div>
-                <h1
-                    class="text-2xl font-bold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-white to-slate-400">
-                    VISION SENTINEL
-                </h1>
+                <div>
+                    <h1 class="text-lg sm:text-xl font-extrabold tracking-tight text-white leading-none">VISION<span class="text-accent-cyan">SENTINEL</span></h1>
+                    <p class="text-[8px] font-mono text-slate-600 tracking-[0.3em] uppercase hidden sm:block">AI Object Detection System</p>
+                </div>
             </div>
-            <div class="hidden md:flex space-x-6 text-sm font-medium text-slate-400">
-                <a href="#" class="hover:text-neon transition-colors">Documentation</a>
-                <a href="#" id="trainingModeLink"
-                    class="hover:text-neon transition-colors font-bold text-emerald-400">Training Mode</a>
-                <a href="#" id="modelsLink" class="hover:text-neon transition-colors">Models</a>
-                <button id="headerStartTrainBtn"
-                    class="ml-4 px-4 py-1.5 rounded-lg bg-neon/10 border border-neon/30 text-neon text-[10px] font-bold hover:bg-neon hover:text-dark transition-all uppercase tracking-widest">
+            <div class="flex items-center space-x-2 sm:space-x-4">
+                <a href="#" class="hidden md:inline-flex text-[11px] font-medium text-slate-500 hover:text-white transition-colors px-3 py-2 rounded-lg hover:bg-white/5">Documentation</a>
+                <a href="#" id="trainingModeLink" class="hidden md:inline-flex text-[11px] font-bold text-accent-emerald hover:text-white transition-colors px-3 py-2 rounded-lg hover:bg-white/5">Training Mode</a>
+                <a href="#" id="modelsLink" class="hidden md:inline-flex text-[11px] font-medium text-slate-500 hover:text-white transition-colors px-3 py-2 rounded-lg hover:bg-white/5">Models</a>
+                <button id="headerStartTrainBtn" class="px-4 py-2 rounded-xl bg-accent-cyan/10 border border-accent-cyan/20 text-accent-cyan text-[9px] font-bold hover:bg-accent-cyan hover:text-surface-0 transition-all uppercase tracking-[0.15em] btn-glow">
                     Start Training
+                </button>
+                <!-- Mobile menu button -->
+                <button id="mobileMenuBtn" class="md:hidden p-2 rounded-lg hover:bg-white/5 text-slate-400">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
                 </button>
             </div>
         </div>
+        <!-- Mobile menu -->
+        <div id="mobileMenu" class="hidden md:hidden mt-4 glass-strong rounded-xl p-4 space-y-2">
+            <a href="#" class="block text-[11px] text-slate-400 hover:text-white py-2 px-3 rounded-lg hover:bg-white/5">Documentation</a>
+            <a href="#" id="trainingModeLinkMobile" class="block text-[11px] font-bold text-accent-emerald hover:text-white py-2 px-3 rounded-lg hover:bg-white/5">Training Mode</a>
+            <a href="#" id="modelsLinkMobile" class="block text-[11px] text-slate-400 hover:text-white py-2 px-3 rounded-lg hover:bg-white/5">Models</a>
+        </div>
     </nav>
 
-    <main class="max-w-7xl mx-auto px-6 py-8">
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 pb-24">
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-5 lg:gap-6">
 
             <!-- Sidebar: Controls -->
-            <div class="lg:col-span-1 space-y-6">
-                <div class="glass p-6 rounded-3xl neo-border">
-                    <h2 class="text-sm font-mono text-neon mb-4 uppercase tracking-widest flex items-center">
-                        <span class="inline-block w-2 h-2 bg-neon rounded-full mr-2 animate-pulse"></span>
+            <div class="lg:col-span-4 xl:col-span-3 space-y-5">
+
+                <!-- Input Configuration -->
+                <div class="glass-strong p-5 rounded-2xl glow-border">
+                    <h2 class="text-[10px] font-mono text-accent-cyan/90 mb-4 uppercase tracking-[0.25em] flex items-center">
+                        <span class="inline-block w-1.5 h-1.5 bg-accent-cyan rounded-full mr-2 animate-pulse"></span>
                         Input Configuration
                     </h2>
 
                     <!-- Master Drop Zone -->
-                    <div id="master-drop-zone"
-                        class="border-2 border-dashed border-slate-700 rounded-2xl p-6 text-center hover:border-neon/50 transition-all cursor-pointer bg-dark/40 group mb-6">
-                        <input type="file" id="master-file-input" accept="image/*" multiple
-                            class="opacity-0 absolute inset-0 pointer-events-none">
-                        <div class="mb-3 flex justify-center">
-                            <svg xmlns="http://www.w3.org/2000/svg"
-                                class="h-10 w-10 text-slate-500 group-hover:text-neon transition-colors" fill="none"
-                                viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
-                                    d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.587-1.587a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                    <div id="master-drop-zone" class="border-2 border-dashed border-white/8 rounded-xl p-5 text-center hover:border-accent-cyan/30 transition-all cursor-pointer bg-surface-0/30 group mb-5 relative overflow-hidden">
+                        <input type="file" id="master-file-input" accept="image/*" multiple class="opacity-0 absolute inset-0 pointer-events-none">
+                        <div class="absolute inset-0 bg-gradient-to-b from-accent-cyan/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"></div>
+                        <div class="mb-2 flex justify-center relative z-10">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-slate-600 group-hover:text-accent-cyan transition-colors duration-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.587-1.587a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
                             </svg>
                         </div>
-                        <p class="text-[10px] text-slate-400 font-bold uppercase tracking-widest">Master Batch Drop</p>
-                        <p class="text-[9px] text-slate-600 uppercase">Drop 1-9 images to auto-fill grid</p>
+                        <p class="text-[9px] text-slate-400 font-bold uppercase tracking-[0.2em] relative z-10">Master Batch Drop</p>
+                        <p class="text-[8px] text-slate-700 uppercase tracking-wider mt-0.5 relative z-10">Drop 1-9 images to auto-fill grid</p>
                     </div>
 
                     <!-- Grid Status -->
-                    <div class="bg-dark/60 border border-slate-700 rounded-2xl p-4 mb-4">
-                        <div class="flex justify-between items-center mb-1">
-                            <span class="text-[10px] font-mono text-slate-500 uppercase">Grid Status</span>
-                            <span id="grid-count" class="text-[10px] font-mono text-neon">0/9 SLOTS LOADED</span>
+                    <div class="bg-surface-0/50 border border-white/5 rounded-xl p-3 mb-4">
+                        <div class="flex justify-between items-center mb-2">
+                            <span class="text-[8px] font-mono text-slate-600 uppercase tracking-[0.2em]">Grid Status</span>
+                            <span id="grid-count" class="text-[9px] font-mono text-accent-cyan font-semibold">0/9 SLOTS</span>
                         </div>
-                        <div class="w-full h-1 bg-slate-800 rounded-full overflow-hidden">
-                            <div id="grid-progress" class="h-full bg-neon transition-all duration-500"
-                                style="width: 0%"></div>
+                        <div class="w-full h-1 bg-surface-3 rounded-full overflow-hidden">
+                            <div id="grid-progress" class="h-full bg-gradient-to-r from-accent-cyan to-accent-purple transition-all duration-500 rounded-full" style="width: 0%"></div>
                         </div>
                     </div>
 
-                    <button id="clearGridBtn"
-                        class="w-full py-2 mb-4 bg-red-500/10 hover:bg-red-500 hover:text-white border border-red-500/20 text-red-500 text-[10px] font-bold rounded-lg transition-all uppercase">Clear
-                        All Slots</button>
-
+                    <button id="clearGridBtn" class="w-full py-2 mb-5 bg-accent-rose/5 hover:bg-accent-rose/15 border border-accent-rose/10 text-accent-rose/70 hover:text-accent-rose text-[9px] font-bold rounded-lg transition-all uppercase tracking-[0.15em]">Clear All Slots</button>
 
                     <!-- Question Input -->
-                    <div class="mt-8 mb-4">
-                        <label class="text-xs font-mono text-slate-400 uppercase mb-2 block">Question (Optional)</label>
-                        <input type="text" id="question-input" placeholder="e.g. hat, bag"
-                            class="w-full bg-dark/60 border border-slate-700 rounded-lg px-3 py-2 text-sm focus:border-neon focus:ring-1 focus:ring-neon outline-none font-mono text-slate-200 transition-all placeholder:text-slate-600">
-                        <p class="text-[9px] text-slate-500 uppercase mt-1 inline-block">If specified,
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3 text-emerald-500 inline -mt-0.5"
-                                viewBox="0 0 20 20" fill="currentColor">
-                                <path fill-rule="evenodd"
-                                    d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                                    clip-rule="evenodd" />
-                            </svg>
-                            appears ONLY when matching.
+                    <div class="mb-5">
+                        <label class="text-[9px] font-mono text-slate-500 uppercase mb-2 block tracking-[0.2em]">Question (Optional)</label>
+                        <input type="text" id="question-input" placeholder="e.g. hat, bag" class="w-full bg-surface-0/50 border border-white/6 rounded-lg px-3 py-2.5 text-[11px] focus:border-accent-cyan/30 focus:ring-1 focus:ring-accent-cyan/15 outline-none font-mono text-slate-200 transition-all placeholder:text-slate-700">
+                        <p class="text-[8px] text-slate-600 uppercase mt-1.5 tracking-wider">
+                            If specified,
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-2.5 w-2.5 text-accent-emerald inline -mt-0.5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+                            appears ONLY when matching
                         </p>
                     </div>
 
                     <!-- Confidence Slider -->
-                    <div class="mt-4">
+                    <div class="mb-5">
                         <div class="flex justify-between items-center mb-2">
-                            <label class="text-xs font-mono text-slate-400 uppercase">Confidence Threshold</label>
-                            <span id="conf-val" class="text-xs font-mono text-neon font-bold">0.01</span>
+                            <label class="text-[9px] font-mono text-slate-500 uppercase tracking-[0.2em]">Confidence</label>
+                            <span id="conf-val" class="text-[10px] font-mono text-accent-cyan font-bold tabular-nums">0.01</span>
                         </div>
-                        <input type="range" id="conf-range" min="0.01" max="1.0" step="0.01" value="0.01"
-                            class="w-full h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-neon">
-                        <div class="flex justify-between mt-1 px-1 text-[10px] text-slate-600 font-mono">
+                        <input type="range" id="conf-range" min="0.01" max="1.0" step="0.01" value="0.01" class="w-full">
+                        <div class="flex justify-between mt-1.5 px-0.5 text-[8px] text-slate-700 font-mono">
                             <span>0.01</span>
                             <span>1.0</span>
                         </div>
                     </div>
 
                     <!-- Detect Button -->
-                    <button id="detectBtn"
-                        class="w-full mt-8 py-4 bg-gradient-to-r from-neon/20 to-neon-purple/20 hover:from-neon hover:to-neon-purple hover:text-dark border border-neon/30 text-neon font-bold rounded-xl transition-all duration-300 shadow-xl shadow-neon/5 flex items-center justify-center space-x-2 group">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 animate-spin hidden" id="loadingIcon"
-                            viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <circle cx="12" cy="12" r="10"></circle>
-                            <path
-                                d="M12 2v4m0 12v4M4.93 4.93l2.83 2.83m8.48 8.48l2.83 2.83M2 12h4m12 0h4M4.93 19.07l2.83-2.83m8.48-8.48l2.83-2.83">
-                            </path>
-                        </svg>
-                        <span id="btnText">EXECUTE ANALYSIS</span>
-                        <svg xmlns="http://www.w3.org/2000/svg"
-                            class="h-4 w-4 group-hover:translate-x-1 transition-transform" fill="none"
-                            viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                d="M14 5l7 7m0 0l-7 7m7-7H3" />
-                        </svg>
+                    <button id="detectBtn" class="w-full py-3.5 bg-gradient-to-r from-accent-cyan/10 to-accent-purple/10 hover:from-accent-cyan hover:to-accent-purple hover:text-surface-0 border border-accent-cyan/20 text-accent-cyan font-bold rounded-xl transition-all duration-300 flex items-center justify-center space-x-2 group text-[10px] uppercase tracking-[0.15em] btn-glow relative overflow-hidden">
+                        <div class="absolute inset-0 bg-gradient-to-r from-accent-cyan/0 to-accent-purple/0 group-hover:from-accent-cyan/20 group-hover:to-accent-purple/20 transition-all duration-300"></div>
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 animate-spin hidden relative z-10" id="loadingIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><path d="M12 2v4m0 12v4M4.93 4.93l2.83 2.83m8.48 8.48l2.83 2.83M2 12h4m12 0h4M4.93 19.07l2.83-2.83m8.48-8.48l2.83-2.83"></path></svg>
+                        <span id="btnText" class="relative z-10">Execute Analysis</span>
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5 group-hover:translate-x-0.5 transition-transform relative z-10" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M14 5l7 7m0 0l-7 7m7-7H3"/></svg>
                     </button>
 
                     <!-- Training Section -->
-                    <div class="mt-8 pt-8 border-t border-slate-800">
-                        <h2 class="text-sm font-mono text-neon-purple mb-4 uppercase tracking-widest flex items-center">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24"
-                                stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                    d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" />
-                            </svg>
+                    <div class="mt-6 pt-6 border-t border-white/5">
+                        <h2 class="text-[10px] font-mono text-accent-purple/90 mb-4 uppercase tracking-[0.25em] flex items-center">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"/></svg>
                             Training Mode
                         </h2>
-                        <div class="space-y-4">
+                        <div class="space-y-3">
                             <div>
-                                <label class="text-[10px] font-mono text-slate-500 uppercase mb-1 block">Object
-                                    Label</label>
-                                <input type="text" id="trainLabel" placeholder="Enter object name (e.g. crocodile)"
-                                    class="w-full bg-dark/60 border border-slate-700 rounded-lg px-3 py-2 text-sm focus:border-neon-purple/50 outline-none font-mono">
+                                <label class="text-[8px] font-mono text-slate-600 uppercase mb-1.5 block tracking-[0.2em]">Object Label</label>
+                                <input type="text" id="trainLabel" placeholder="e.g. crocodile" class="w-full bg-surface-0/50 border border-white/6 rounded-lg px-3 py-2.5 text-[11px] focus:border-accent-purple/30 focus:ring-1 focus:ring-accent-purple/15 outline-none font-mono text-white transition-all placeholder:text-slate-700">
                             </div>
-                            <button id="trainBtn"
-                                class="w-full py-2 bg-slate-800 hover:bg-neon-purple hover:text-white text-slate-300 text-xs font-bold rounded-lg transition-all border border-slate-700">
-                                SAVE FOR TRAINING
+                            <button id="trainBtn" class="w-full py-2.5 bg-white/3 hover:bg-accent-purple hover:text-white text-slate-400 text-[9px] font-bold rounded-lg transition-all border border-white/6 hover:border-accent-purple/50 uppercase tracking-[0.15em] btn-glow-purple">
+                                Save for Training
                             </button>
                         </div>
 
-                        <!-- Global Train Action -->
-                        <div class="mt-6 pt-6 border-t border-slate-800/50">
-                            <button id="startTrainBtn"
-                                class="w-full py-3 bg-gradient-to-r from-emerald-500/20 to-teal-500/20 hover:from-emerald-500 hover:to-teal-500 hover:text-dark border border-emerald-500/30 text-emerald-500 font-bold rounded-xl transition-all flex items-center justify-center space-x-2">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
-                                    stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                        d="M13 10V3L4 14h7v7l9-11h-7z" />
-                                </svg>
-                                <span>START MODEL TRAINING</span>
+                        <div class="mt-5 pt-5 border-t border-white/5">
+                            <button id="startTrainBtn" class="w-full py-3 bg-gradient-to-r from-accent-emerald/10 to-accent-cyan/10 hover:from-accent-emerald hover:to-accent-cyan hover:text-surface-0 border border-accent-emerald/20 text-accent-emerald font-bold rounded-xl transition-all flex items-center justify-center space-x-2 text-[9px] uppercase tracking-[0.15em] btn-glow-emerald">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+                                <span>Start Model Training</span>
                             </button>
                             <div id="training-progress-container" class="mt-4 hidden">
-                                <div class="flex justify-between items-center mb-1">
-                                    <span class="text-[9px] font-mono text-emerald-500 uppercase">Training Progress</span>
-                                    <span id="training-progress-percent" class="text-[9px] font-mono text-emerald-500">0%</span>
+                                <div class="flex justify-between items-center mb-1.5">
+                                    <span class="text-[8px] font-mono text-accent-emerald uppercase tracking-[0.2em]">Training Progress</span>
+                                    <span id="training-progress-percent" class="text-[8px] font-mono text-accent-emerald tabular-nums">0%</span>
                                 </div>
-                                <div class="w-full h-1 bg-slate-800 rounded-full overflow-hidden border border-emerald-500/20">
-                                    <div id="training-progress-bar" class="h-full bg-emerald-500 transition-all duration-500" style="width: 0%"></div>
+                                <div class="w-full h-1 bg-surface-3 rounded-full overflow-hidden border border-accent-emerald/10">
+                                    <div id="training-progress-bar" class="h-full bg-gradient-to-r from-accent-emerald to-accent-cyan transition-all duration-500 rounded-full" style="width: 0%"></div>
                                 </div>
                             </div>
-                            <p id="trainStatus"
-                                class="mt-3 text-[10px] font-mono text-center text-slate-500 uppercase tracking-widest">
-                                Status: Idle</p>
+                            <p id="trainStatus" class="mt-3 text-[8px] font-mono text-center text-slate-600 uppercase tracking-[0.25em]">Status: Idle</p>
                         </div>
                     </div>
                 </div>
 
                 <!-- Status Panel -->
-                <div class="glass p-6 rounded-3xl neo-border">
-                    <h2 class="text-sm font-mono text-neon-purple mb-4 uppercase tracking-widest">System Status</h2>
+                <div class="glass-strong p-5 rounded-2xl glow-border-purple">
+                    <h2 class="text-[10px] font-mono text-accent-purple/90 mb-4 uppercase tracking-[0.25em]">System Status</h2>
                     <div class="space-y-3">
-                        <div class="flex justify-between items-center text-xs">
-                            <span class="text-slate-500">API Status</span>
-                            <span
-                                class="px-2 py-0.5 bg-emerald-500/10 text-emerald-500 rounded-full font-bold">ONLINE</span>
+                        <div class="flex justify-between items-center">
+                            <span class="text-[10px] text-slate-600 font-mono">API Status</span>
+                            <span class="px-2 py-0.5 bg-accent-emerald/10 text-accent-emerald rounded-md text-[9px] font-bold tracking-wider">ONLINE</span>
                         </div>
-                        <div class="flex justify-between items-center text-xs">
-                            <span class="text-slate-500">Model</span>
-                            <span id="model-name-display" class="text-slate-300 font-mono italic">Loading...</span>
+                        <div class="flex justify-between items-center">
+                            <span class="text-[10px] text-slate-600 font-mono">Model</span>
+                            <span id="model-name-display" class="text-[10px] text-slate-400 font-mono italic">Loading...</span>
                         </div>
-                        <div class="flex justify-between items-center text-xs">
-                            <span class="text-slate-500">Processor</span>
-                            <span id="device-display"
-                                class="text-slate-300 font-mono uppercase tracking-tighter">---</span>
+                        <div class="flex justify-between items-center">
+                            <span class="text-[10px] text-slate-600 font-mono">Processor</span>
+                            <span id="device-display" class="text-[10px] text-slate-400 font-mono uppercase tracking-tight">---</span>
                         </div>
-                        <div class="flex justify-between items-center text-xs border-t border-slate-800 pt-3 mt-3">
-                            <span class="text-slate-500">Latency</span>
-                            <span id="latency" class="text-slate-300 font-mono">---</span>
+                        <div class="flex justify-between items-center pt-3 mt-1 border-t border-white/5">
+                            <span class="text-[10px] text-slate-600 font-mono">Latency</span>
+                            <span id="latency" class="text-[10px] text-slate-400 font-mono tabular-nums">---</span>
                         </div>
                     </div>
                 </div>
             </div>
 
             <!-- Main Panel: Output -->
-            <div class="lg:col-span-2 space-y-6">
+            <div class="lg:col-span-8 xl:col-span-9 space-y-5">
+
                 <!-- Preview Canvas -->
-                <div class="glass rounded-3xl neo-border overflow-hidden min-h-[400px] flex flex-col">
-                    <div class="p-4 border-b border-slate-800 flex justify-between items-center">
-                        <div class="flex space-x-2">
-                            <div class="w-3 h-3 rounded-full bg-slate-700"></div>
-                            <div class="w-3 h-3 rounded-full bg-slate-700"></div>
-                            <div class="w-3 h-3 rounded-full bg-slate-700"></div>
+                <div class="glass-strong rounded-2xl glow-border overflow-hidden">
+                    <div class="px-4 py-3 border-b border-white/5 flex justify-between items-center">
+                        <div class="flex space-x-1.5">
+                            <div class="w-2.5 h-2.5 rounded-full bg-white/8"></div>
+                            <div class="w-2.5 h-2.5 rounded-full bg-white/8"></div>
+                            <div class="w-2.5 h-2.5 rounded-full bg-white/8"></div>
                         </div>
-                        <span class="text-xs font-mono text-slate-500">Live Preview Output</span>
-                        <div class="flex space-x-2">
-                            <button class="p-1 hover:text-neon text-slate-600 transition-colors">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
-                                    stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                        d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                                </svg>
-                            </button>
-                        </div>
+                        <span class="text-[9px] font-mono text-slate-600 uppercase tracking-[0.2em]">Live Preview Output</span>
+                        <button class="p-1 hover:text-accent-cyan text-slate-700 transition-colors">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+                        </button>
                     </div>
 
-                    <div class="flex-grow p-4 bg-dark/40 flex items-center justify-center">
-                        <div id="grid-container"
-                            class="grid grid-cols-3 grid-rows-3 gap-3 w-full h-full max-w-[500px] aspect-square">
+                    <div class="p-4 sm:p-5 bg-surface-0/30">
+                        <div id="grid-container" class="grid grid-cols-3 gap-2 sm:gap-3 w-full max-w-[560px] mx-auto aspect-square">
                             <!-- 9 Interactive Slots -->
-                            <div class="grid-slot relative glass-slot border border-slate-700/50 rounded-xl flex items-center justify-center cursor-pointer hover:border-neon/50 transition-all overflow-hidden group"
-                                data-index="0">
-                                <div
-                                    class="slot-placeholder text-slate-700 group-hover:text-neon/30 transition-colors uppercase font-mono text-[10px]">
-                                    Slot 1</div>
+                            <div class="grid-slot relative border border-white/6 rounded-xl flex items-center justify-center cursor-pointer hover:border-accent-cyan/30 transition-all overflow-hidden group aspect-square" data-index="0">
+                                <div class="slot-placeholder text-slate-700 group-hover:text-accent-cyan/20 transition-colors uppercase font-mono text-[8px] tracking-wider">01</div>
                                 <img class="absolute inset-0 w-full h-full object-cover hidden">
-                                <div
-                                    class="slot-badge absolute top-2 right-2 hidden bg-emerald-500 rounded-full p-1 shadow-lg shadow-emerald-500/20 z-10">
-                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3 text-white"
-                                        viewBox="0 0 20 20" fill="currentColor">
-                                        <path fill-rule="evenodd"
-                                            d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                                            clip-rule="evenodd" />
-                                    </svg>
+                                <div class="slot-badge absolute top-1.5 right-1.5 hidden bg-accent-emerald rounded-full p-0.5 shadow-lg shadow-accent-emerald/20 z-10">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-2.5 w-2.5 text-white" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
                                 </div>
                                 <div class="slot-overlay absolute inset-0 pointer-events-none"></div>
-                                <input type="file" class="opacity-0 absolute inset-0 pointer-events-none slot-input"
-                                    accept="image/*">
+                                <input type="file" class="opacity-0 absolute inset-0 pointer-events-none slot-input" accept="image/*">
                             </div>
-                            <div class="grid-slot relative glass-slot border border-slate-700/50 rounded-xl flex items-center justify-center cursor-pointer hover:border-neon/50 transition-all overflow-hidden group"
-                                data-index="1">
-                                <div
-                                    class="slot-placeholder text-slate-700 group-hover:text-neon/30 transition-colors uppercase font-mono text-[10px]">
-                                    Slot 2</div>
+                            <div class="grid-slot relative border border-white/6 rounded-xl flex items-center justify-center cursor-pointer hover:border-accent-cyan/30 transition-all overflow-hidden group aspect-square" data-index="1">
+                                <div class="slot-placeholder text-slate-700 group-hover:text-accent-cyan/20 transition-colors uppercase font-mono text-[8px] tracking-wider">02</div>
                                 <img class="absolute inset-0 w-full h-full object-cover hidden">
-                                <div
-                                    class="slot-badge absolute top-2 right-2 hidden bg-emerald-500 rounded-full p-1 shadow-lg shadow-emerald-500/20 z-10">
-                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3 text-white"
-                                        viewBox="0 0 20 20" fill="currentColor">
-                                        <path fill-rule="evenodd"
-                                            d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                                            clip-rule="evenodd" />
-                                    </svg>
+                                <div class="slot-badge absolute top-1.5 right-1.5 hidden bg-accent-emerald rounded-full p-0.5 shadow-lg shadow-accent-emerald/20 z-10">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-2.5 w-2.5 text-white" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
                                 </div>
                                 <div class="slot-overlay absolute inset-0 pointer-events-none"></div>
-                                <input type="file" class="opacity-0 absolute inset-0 pointer-events-none slot-input"
-                                    accept="image/*">
+                                <input type="file" class="opacity-0 absolute inset-0 pointer-events-none slot-input" accept="image/*">
                             </div>
-                            <div class="grid-slot relative glass-slot border border-slate-700/50 rounded-xl flex items-center justify-center cursor-pointer hover:border-neon/50 transition-all overflow-hidden group"
-                                data-index="2">
-                                <div
-                                    class="slot-placeholder text-slate-700 group-hover:text-neon/30 transition-colors uppercase font-mono text-[10px]">
-                                    Slot 3</div>
+                            <div class="grid-slot relative border border-white/6 rounded-xl flex items-center justify-center cursor-pointer hover:border-accent-cyan/30 transition-all overflow-hidden group aspect-square" data-index="2">
+                                <div class="slot-placeholder text-slate-700 group-hover:text-accent-cyan/20 transition-colors uppercase font-mono text-[8px] tracking-wider">03</div>
                                 <img class="absolute inset-0 w-full h-full object-cover hidden">
-                                <div
-                                    class="slot-badge absolute top-2 right-2 hidden bg-emerald-500 rounded-full p-1 shadow-lg shadow-emerald-500/20 z-10">
-                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3 text-white"
-                                        viewBox="0 0 20 20" fill="currentColor">
-                                        <path fill-rule="evenodd"
-                                            d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                                            clip-rule="evenodd" />
-                                    </svg>
+                                <div class="slot-badge absolute top-1.5 right-1.5 hidden bg-accent-emerald rounded-full p-0.5 shadow-lg shadow-accent-emerald/20 z-10">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-2.5 w-2.5 text-white" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
                                 </div>
                                 <div class="slot-overlay absolute inset-0 pointer-events-none"></div>
-                                <input type="file" class="opacity-0 absolute inset-0 pointer-events-none slot-input"
-                                    accept="image/*">
+                                <input type="file" class="opacity-0 absolute inset-0 pointer-events-none slot-input" accept="image/*">
                             </div>
-                            <div class="grid-slot relative glass-slot border border-slate-700/50 rounded-xl flex items-center justify-center cursor-pointer hover:border-neon/50 transition-all overflow-hidden group"
-                                data-index="3">
-                                <div
-                                    class="slot-placeholder text-slate-700 group-hover:text-neon/30 transition-colors uppercase font-mono text-[10px]">
-                                    Slot 4</div>
+                            <div class="grid-slot relative border border-white/6 rounded-xl flex items-center justify-center cursor-pointer hover:border-accent-cyan/30 transition-all overflow-hidden group aspect-square" data-index="3">
+                                <div class="slot-placeholder text-slate-700 group-hover:text-accent-cyan/20 transition-colors uppercase font-mono text-[8px] tracking-wider">04</div>
                                 <img class="absolute inset-0 w-full h-full object-cover hidden">
-                                <div
-                                    class="slot-badge absolute top-2 right-2 hidden bg-emerald-500 rounded-full p-1 shadow-lg shadow-emerald-500/20 z-10">
-                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3 text-white"
-                                        viewBox="0 0 20 20" fill="currentColor">
-                                        <path fill-rule="evenodd"
-                                            d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                                            clip-rule="evenodd" />
-                                    </svg>
+                                <div class="slot-badge absolute top-1.5 right-1.5 hidden bg-accent-emerald rounded-full p-0.5 shadow-lg shadow-accent-emerald/20 z-10">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-2.5 w-2.5 text-white" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
                                 </div>
                                 <div class="slot-overlay absolute inset-0 pointer-events-none"></div>
-                                <input type="file" class="opacity-0 absolute inset-0 pointer-events-none slot-input"
-                                    accept="image/*">
+                                <input type="file" class="opacity-0 absolute inset-0 pointer-events-none slot-input" accept="image/*">
                             </div>
-                            <div class="grid-slot relative glass-slot border border-slate-700/50 rounded-xl flex items-center justify-center cursor-pointer hover:border-neon/50 transition-all overflow-hidden group"
-                                data-index="4">
-                                <div
-                                    class="slot-placeholder text-slate-700 group-hover:text-neon/30 transition-colors uppercase font-mono text-[10px]">
-                                    Slot 5</div>
+                            <div class="grid-slot relative border border-white/6 rounded-xl flex items-center justify-center cursor-pointer hover:border-accent-cyan/30 transition-all overflow-hidden group aspect-square" data-index="4">
+                                <div class="slot-placeholder text-slate-700 group-hover:text-accent-cyan/20 transition-colors uppercase font-mono text-[8px] tracking-wider">05</div>
                                 <img class="absolute inset-0 w-full h-full object-cover hidden">
-                                <div
-                                    class="slot-badge absolute top-2 right-2 hidden bg-emerald-500 rounded-full p-1 shadow-lg shadow-emerald-500/20 z-10">
-                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3 text-white"
-                                        viewBox="0 0 20 20" fill="currentColor">
-                                        <path fill-rule="evenodd"
-                                            d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                                            clip-rule="evenodd" />
-                                    </svg>
+                                <div class="slot-badge absolute top-1.5 right-1.5 hidden bg-accent-emerald rounded-full p-0.5 shadow-lg shadow-accent-emerald/20 z-10">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-2.5 w-2.5 text-white" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
                                 </div>
                                 <div class="slot-overlay absolute inset-0 pointer-events-none"></div>
-                                <input type="file" class="opacity-0 absolute inset-0 pointer-events-none slot-input"
-                                    accept="image/*">
+                                <input type="file" class="opacity-0 absolute inset-0 pointer-events-none slot-input" accept="image/*">
                             </div>
-                            <div class="grid-slot relative glass-slot border border-slate-700/50 rounded-xl flex items-center justify-center cursor-pointer hover:border-neon/50 transition-all overflow-hidden group"
-                                data-index="5">
-                                <div
-                                    class="slot-placeholder text-slate-700 group-hover:text-neon/30 transition-colors uppercase font-mono text-[10px]">
-                                    Slot 6</div>
+                            <div class="grid-slot relative border border-white/6 rounded-xl flex items-center justify-center cursor-pointer hover:border-accent-cyan/30 transition-all overflow-hidden group aspect-square" data-index="5">
+                                <div class="slot-placeholder text-slate-700 group-hover:text-accent-cyan/20 transition-colors uppercase font-mono text-[8px] tracking-wider">06</div>
                                 <img class="absolute inset-0 w-full h-full object-cover hidden">
-                                <div
-                                    class="slot-badge absolute top-2 right-2 hidden bg-emerald-500 rounded-full p-1 shadow-lg shadow-emerald-500/20 z-10">
-                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3 text-white"
-                                        viewBox="0 0 20 20" fill="currentColor">
-                                        <path fill-rule="evenodd"
-                                            d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                                            clip-rule="evenodd" />
-                                    </svg>
+                                <div class="slot-badge absolute top-1.5 right-1.5 hidden bg-accent-emerald rounded-full p-0.5 shadow-lg shadow-accent-emerald/20 z-10">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-2.5 w-2.5 text-white" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
                                 </div>
                                 <div class="slot-overlay absolute inset-0 pointer-events-none"></div>
-                                <input type="file" class="opacity-0 absolute inset-0 pointer-events-none slot-input"
-                                    accept="image/*">
+                                <input type="file" class="opacity-0 absolute inset-0 pointer-events-none slot-input" accept="image/*">
                             </div>
-                            <div class="grid-slot relative glass-slot border border-slate-700/50 rounded-xl flex items-center justify-center cursor-pointer hover:border-neon/50 transition-all overflow-hidden group"
-                                data-index="6">
-                                <div
-                                    class="slot-placeholder text-slate-700 group-hover:text-neon/30 transition-colors uppercase font-mono text-[10px]">
-                                    Slot 7</div>
+                            <div class="grid-slot relative border border-white/6 rounded-xl flex items-center justify-center cursor-pointer hover:border-accent-cyan/30 transition-all overflow-hidden group aspect-square" data-index="6">
+                                <div class="slot-placeholder text-slate-700 group-hover:text-accent-cyan/20 transition-colors uppercase font-mono text-[8px] tracking-wider">07</div>
                                 <img class="absolute inset-0 w-full h-full object-cover hidden">
-                                <div
-                                    class="slot-badge absolute top-2 right-2 hidden bg-emerald-500 rounded-full p-1 shadow-lg shadow-emerald-500/20 z-10">
-                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3 text-white"
-                                        viewBox="0 0 20 20" fill="currentColor">
-                                        <path fill-rule="evenodd"
-                                            d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                                            clip-rule="evenodd" />
-                                    </svg>
+                                <div class="slot-badge absolute top-1.5 right-1.5 hidden bg-accent-emerald rounded-full p-0.5 shadow-lg shadow-accent-emerald/20 z-10">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-2.5 w-2.5 text-white" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
                                 </div>
                                 <div class="slot-overlay absolute inset-0 pointer-events-none"></div>
-                                <input type="file" class="opacity-0 absolute inset-0 pointer-events-none slot-input"
-                                    accept="image/*">
+                                <input type="file" class="opacity-0 absolute inset-0 pointer-events-none slot-input" accept="image/*">
                             </div>
-                            <div class="grid-slot relative glass-slot border border-slate-700/50 rounded-xl flex items-center justify-center cursor-pointer hover:border-neon/50 transition-all overflow-hidden group"
-                                data-index="7">
-                                <div
-                                    class="slot-placeholder text-slate-700 group-hover:text-neon/30 transition-colors uppercase font-mono text-[10px]">
-                                    Slot 8</div>
+                            <div class="grid-slot relative border border-white/6 rounded-xl flex items-center justify-center cursor-pointer hover:border-accent-cyan/30 transition-all overflow-hidden group aspect-square" data-index="7">
+                                <div class="slot-placeholder text-slate-700 group-hover:text-accent-cyan/20 transition-colors uppercase font-mono text-[8px] tracking-wider">08</div>
                                 <img class="absolute inset-0 w-full h-full object-cover hidden">
-                                <div
-                                    class="slot-badge absolute top-2 right-2 hidden bg-emerald-500 rounded-full p-1 shadow-lg shadow-emerald-500/20 z-10">
-                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3 text-white"
-                                        viewBox="0 0 20 20" fill="currentColor">
-                                        <path fill-rule="evenodd"
-                                            d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                                            clip-rule="evenodd" />
-                                    </svg>
+                                <div class="slot-badge absolute top-1.5 right-1.5 hidden bg-accent-emerald rounded-full p-0.5 shadow-lg shadow-accent-emerald/20 z-10">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-2.5 w-2.5 text-white" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
                                 </div>
                                 <div class="slot-overlay absolute inset-0 pointer-events-none"></div>
-                                <input type="file" class="opacity-0 absolute inset-0 pointer-events-none slot-input"
-                                    accept="image/*">
+                                <input type="file" class="opacity-0 absolute inset-0 pointer-events-none slot-input" accept="image/*">
                             </div>
-                            <div class="grid-slot relative glass-slot border border-slate-700/50 rounded-xl flex items-center justify-center cursor-pointer hover:border-neon/50 transition-all overflow-hidden group"
-                                data-index="8">
-                                <div
-                                    class="slot-placeholder text-slate-700 group-hover:text-neon/30 transition-colors uppercase font-mono text-[10px]">
-                                    Slot 9</div>
+                            <div class="grid-slot relative border border-white/6 rounded-xl flex items-center justify-center cursor-pointer hover:border-accent-cyan/30 transition-all overflow-hidden group aspect-square" data-index="8">
+                                <div class="slot-placeholder text-slate-700 group-hover:text-accent-cyan/20 transition-colors uppercase font-mono text-[8px] tracking-wider">09</div>
                                 <img class="absolute inset-0 w-full h-full object-cover hidden">
-                                <div
-                                    class="slot-badge absolute top-2 right-2 hidden bg-emerald-500 rounded-full p-1 shadow-lg shadow-emerald-500/20 z-10">
-                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3 text-white"
-                                        viewBox="0 0 20 20" fill="currentColor">
-                                        <path fill-rule="evenodd"
-                                            d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                                            clip-rule="evenodd" />
-                                    </svg>
+                                <div class="slot-badge absolute top-1.5 right-1.5 hidden bg-accent-emerald rounded-full p-0.5 shadow-lg shadow-accent-emerald/20 z-10">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-2.5 w-2.5 text-white" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
                                 </div>
                                 <div class="slot-overlay absolute inset-0 pointer-events-none"></div>
-                                <input type="file" class="opacity-0 absolute inset-0 pointer-events-none slot-input"
-                                    accept="image/*">
+                                <input type="file" class="opacity-0 absolute inset-0 pointer-events-none slot-input" accept="image/*">
                             </div>
                         </div>
                     </div>
                 </div>
 
-                <style>
-                    .glass-slot {
-                        background: rgba(15, 23, 42, 0.4);
-                        box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.2);
-                    }
-
-                    .grid-slot.active {
-                        border-color: rgba(34, 211, 238, 0.5);
-                        background: rgba(34, 211, 238, 0.05);
-                    }
-                </style>
-
                 <!-- Results List -->
-                <div class="glass p-6 rounded-3xl neo-border">
-                    <div class="flex justify-between items-center mb-6">
-                        <h2 class="text-sm font-mono text-neon uppercase tracking-widest">Detection Stream</h2>
-                        <div id="object-count"
-                            class="px-3 py-1 bg-neon/10 text-neon rounded-full text-xs font-bold font-mono">0 OBJECTS
-                        </div>
+                <div class="glass-strong p-5 rounded-2xl glow-border">
+                    <div class="flex justify-between items-center mb-5">
+                        <h2 class="text-[10px] font-mono text-accent-cyan/90 uppercase tracking-[0.25em] flex items-center">
+                            <span class="w-1.5 h-1.5 bg-accent-cyan rounded-full mr-2 opacity-50"></span>
+                            Detection Stream
+                        </h2>
+                        <div id="object-count" class="px-2.5 py-1 bg-accent-cyan/8 text-accent-cyan rounded-lg text-[9px] font-bold font-mono tracking-wider border border-accent-cyan/10">0 OBJECTS</div>
                     </div>
-
-                    <div id="results-list" class="max-h-[250px] overflow-y-auto custom-scrollbar space-y-2 pr-2">
-                        <!-- Example Result -->
-                        <div class="text-center py-8 text-slate-600 font-mono text-xs italic">
+                    <div id="results-list" class="max-h-[220px] overflow-y-auto custom-scrollbar space-y-2 pr-2">
+                        <div class="text-center py-10 text-slate-700 font-mono text-[10px] tracking-wider">
+                            <div class="w-10 h-10 rounded-xl bg-white/3 flex items-center justify-center mx-auto mb-3 border border-white/5">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-slate-700" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
+                            </div>
                             Awaiting inference payload...
                         </div>
                     </div>
@@ -780,20 +687,68 @@
         </div>
     </main>
 
-    <!-- Footer Stats bar -->
-    <footer class="fixed bottom-0 left-0 right-0 glass border-t border-slate-800 px-6 py-2 z-50">
-        <div class="max-w-7xl mx-auto flex items-center justify-between text-[10px] font-mono text-slate-500">
-            <div class="flex items-center space-x-4">
-                <span class="flex items-center"><span
-                        class="w-1.5 h-1.5 bg-emerald-500 rounded-full mr-2"></span>SYS_STABLE</span>
-                <span>CPU_LOAD: 12%</span>
-                <span>VRAM: 4.2GB / 8GB</span>
+    <!-- Footer Stats Bar -->
+    <footer class="fixed bottom-0 left-0 right-0 glass-strong border-t border-white/5 px-4 sm:px-6 py-2 z-50">
+        <div class="max-w-7xl mx-auto flex items-center justify-between text-[9px] font-mono text-slate-600">
+            <div class="flex items-center space-x-3 sm:space-x-5">
+                <span class="flex items-center"><span class="w-1.5 h-1.5 bg-accent-emerald rounded-full mr-1.5 animate-pulse"></span>STABLE</span>
+                <span class="hidden sm:inline">CPU: 12%</span>
+                <span class="hidden md:inline">VRAM: 4.2/8GB</span>
             </div>
-            <div class="flex items-center space-x-2">
-                <span id="timestamp">TIMESTAMP: 2026.03.16_13:24:47</span>
-            </div>
+            <span id="timestamp" class="tabular-nums tracking-wider">2026.03.16_13:24:47</span>
         </div>
     </footer>
+
+    <script>
+        // Mobile menu toggle
+        document.getElementById('mobileMenuBtn')?.addEventListener('click', () => {
+            document.getElementById('mobileMenu').classList.toggle('hidden');
+        });
+
+        // Timestamp updater
+        function updateTimestamp() {
+            const now = new Date();
+            const ts = now.getFullYear() + '.' +
+                String(now.getMonth() + 1).padStart(2, '0') + '.' +
+                String(now.getDate()).padStart(2, '0') + '_' +
+                String(now.getHours()).padStart(2, '0') + ':' +
+                String(now.getMinutes()).padStart(2, '0') + ':' +
+                String(now.getSeconds()).padStart(2, '0');
+            document.getElementById('timestamp').textContent = ts;
+        }
+        setInterval(updateTimestamp, 1000);
+        updateTimestamp();
+
+        // Confidence slider display
+        const confRange = document.getElementById('conf-range');
+        const confVal = document.getElementById('conf-val');
+        if (confRange && confVal) {
+            confRange.addEventListener('input', () => {
+                confVal.textContent = parseFloat(confRange.value).toFixed(2);
+            });
+        }
+
+        // Modal helpers (basic wiring so modals open/close)
+        function openModal(id) {
+            document.getElementById(id)?.classList.add('show');
+        }
+        function closeModal(id) {
+            document.getElementById(id)?.classList.remove('show');
+        }
+
+        document.getElementById('startTrainBtn')?.addEventListener('click', () => openModal('modal-overlay'));
+        document.getElementById('headerStartTrainBtn')?.addEventListener('click', () => openModal('modal-overlay'));
+        document.getElementById('cancelModal')?.addEventListener('click', () => closeModal('modal-overlay'));
+        document.getElementById('confirmModal')?.addEventListener('click', () => closeModal('modal-overlay'));
+
+        document.getElementById('trainingModeLink')?.addEventListener('click', (e) => { e.preventDefault(); openModal('training-modal-overlay'); });
+        document.getElementById('trainingModeLinkMobile')?.addEventListener('click', (e) => { e.preventDefault(); openModal('training-modal-overlay'); document.getElementById('mobileMenu').classList.add('hidden'); });
+        document.getElementById('closeTrainingModal')?.addEventListener('click', () => closeModal('training-modal-overlay'));
+
+        document.getElementById('modelsLink')?.addEventListener('click', (e) => { e.preventDefault(); openModal('models-modal-overlay'); });
+        document.getElementById('modelsLinkMobile')?.addEventListener('click', (e) => { e.preventDefault(); openModal('models-modal-overlay'); document.getElementById('mobileMenu').classList.add('hidden'); });
+        document.getElementById('closeModelsModal')?.addEventListener('click', () => closeModal('models-modal-overlay'));
+    </script>
 
     <script src="/app.js?v=12"></script>
 </body>
